@@ -15,9 +15,11 @@ dist/
 build/
 *.egg-info/
 
-# Archivos de base de datos SQLite (opcional, comenta si quieres incluirlos)
-# *.db
-# *.sqlite3
+# Archivos de base de datos SQLite
+# No excluimos invoices.db para que se suba la versión vacía
+# pero sí excluimos la versión personal
+invoices_personal.db
+*.sqlite3
 
 # Archivos de log
 *.log
