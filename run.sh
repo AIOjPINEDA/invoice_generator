@@ -4,6 +4,7 @@
 PORT=8888
 LOG_FILE="app.log"
 NO_BROWSER=false
+VENV_PATH="venv"
 
 # Process simple arguments
 if [ "$1" = "--help" ]; then
@@ -44,6 +45,14 @@ cleanup() {
 
 # Set up trap to handle Ctrl+C and other termination signals
 trap cleanup SIGINT SIGTERM EXIT
+
+# Activate virtual environment if it exists
+if [ -d "$VENV_PATH" ] && [ -f "$VENV_PATH/bin/activate" ]; then
+    echo "Activating virtual environment..."
+    source "$VENV_PATH/bin/activate"
+else
+    echo "Warning: Virtual environment not found at $VENV_PATH"
+fi
 
 # Check if Flask is installed
 if ! python -c "import flask" &>/dev/null; then
