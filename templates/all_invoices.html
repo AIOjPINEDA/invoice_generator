@@ -1,0 +1,396 @@
+{% extends "base.html" %}
+
+{% block title %}All Invoices - Invoice Generator 2025{% endblock %}
+
+{% block extra_styles %}
+/* Filter controls */
+.filter-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background-color: var(--card-background);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.filter-group label {
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.filter-group select, .filter-group input {
+    padding: 0.5rem;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    background-color: var(--input-background);
+    color: var(--text-primary);
+}
+
+/* Summary stats */
+.summary-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.stat-card {
+    background-color: var(--card-background);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: center;
+}
+
+.stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--accent-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+}
+
+.stat-content h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.stat-content p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+/* Table styles */
+.table-responsive {
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th,
+.table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.table th {
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.table tbody tr {
+    transition: background-color 0.3s ease;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(var(--accent-color-rgb), 0.05);
+}
+
+.table-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem;
+    border-radius: var(--border-radius);
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.action-btn i {
+    margin-right: 0.25rem;
+}
+
+.action-btn-view {
+    background-color: rgba(var(--primary-color-rgb), 0.1);
+    color: var(--primary-color);
+}
+
+.action-btn-view:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.action-btn-delete {
+    background-color: rgba(var(--danger-color-rgb), 0.1);
+    color: var(--danger-color);
+}
+
+.action-btn-delete:hover {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+/* Sortable table */
+.sortable {
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+}
+
+.sortable i {
+    margin-left: 5px;
+    font-size: 0.8em;
+    opacity: 0.5;
+    transition: all 0.2s ease;
+}
+
+.sortable.asc i {
+    opacity: 1;
+    transform: rotate(180deg);
+}
+
+.sortable.desc i {
+    opacity: 1;
+    transform: rotate(0deg);
+}
+
+.sortable:hover i {
+    opacity: 0.8;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .filter-controls {
+        flex-direction: column;
+    }
+    
+    .summary-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .mobile-hide {
+        display: none;
+    }
+}
+{% endblock %}
+
+{% block content %}
+<!-- Year selector -->
+<div class="year-selector">
+    <label for="year-select">Select Year:</label>
+    <select id="year-select" onchange="window.location.href='/all_invoices?year=' + this.value">
+        {% for year in available_years %}
+        <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
+        {% endfor %}
+    </select>
+</div>
+
+<!-- Summary stats -->
+<div class="summary-stats">
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-file-invoice"></i>
+        </div>
+        <div class="stat-content">
+            <h3>{{ invoices|length }}</h3>
+            <p>Total Invoices</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-money-bill-wave"></i>
+        </div>
+        <div class="stat-content">
+            <h3>{{ currency_symbol }}{{ "%.2f"|format(total_amount) }}</h3>
+            <p>Total Amount</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-content">
+            <h3>{{ unique_clients }}</h3>
+            <p>Unique Clients</p>
+        </div>
+    </div>
+</div>
+
+<!-- Filter controls -->
+<div class="filter-controls">
+    <div class="filter-group">
+        <label for="client-filter">Filter by Client:</label>
+        <select id="client-filter">
+            <option value="all">All Clients</option>
+            {% for client_name in client_names %}
+            <option value="{{ client_name }}">{{ client_name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="filter-group">
+        <label for="month-filter">Filter by Month:</label>
+        <select id="month-filter">
+            <option value="all">All Months</option>
+            <option value="01">January</option>
+            <option value="02">February</option>
+            <option value="03">March</option>
+            <option value="04">April</option>
+            <option value="05">May</option>
+            <option value="06">June</option>
+            <option value="07">July</option>
+            <option value="08">August</option>
+            <option value="09">September</option>
+            <option value="10">October</option>
+            <option value="11">November</option>
+            <option value="12">December</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <label for="search-filter">Search:</label>
+        <input type="text" id="search-filter" placeholder="Search invoices...">
+    </div>
+</div>
+
+<!-- Invoices table -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table sortable-table" id="invoices-table">
+                <thead>
+                    <tr>
+                        <th class="sortable" data-sort="invoice">Invoice # <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="date">Date <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="client">Client <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="service">Service <i class="fas fa-sort"></i></th>
+                        <th class="sortable" data-sort="amount">Amount <i class="fas fa-sort"></i></th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for invoice in invoices %}
+                    <tr data-client="{{ invoice[3] }}" data-month="{{ invoice[2].split('/')[1] }}">
+                        <td data-value="{{ invoice[1] }}">{{ invoice[1] }}</td>
+                        <td data-value="{{ invoice[2] }}" data-date="{{ invoice[2].split('/')[2] + invoice[2].split('/')[1] + invoice[2].split('/')[0] }}">{{ invoice[2] }}</td>
+                        <td data-value="{{ invoice[3] }}">{{ invoice[3] }}</td>
+                        <td data-value="{{ invoice[4] }}">{{ invoice[4] }}</td>
+                        <td data-value="{{ invoice[6] }}">
+                            {{ invoice[10] }}{{ "%.2f"|format(invoice[6]) }}
+                            {% if invoice[7] %}<small>+VAT</small>{% endif %}
+                            {% if invoice[8] %}<small>-IRPF</small>{% endif %}
+                        </td>
+                        <td>
+                            <div class="table-actions">
+                                <a href="/view_invoice/{{ invoice[1] }}" class="action-btn action-btn-view">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                                <a href="#" onclick="confirmDelete('{{ invoice[1] }}')" class="action-btn action-btn-delete">
+                                    <i class="fas fa-trash"></i> Delete
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialize filters
+    document.addEventListener('DOMContentLoaded', function() {
+        const clientFilter = document.getElementById('client-filter');
+        const monthFilter = document.getElementById('month-filter');
+        const searchFilter = document.getElementById('search-filter');
+        const table = document.getElementById('invoices-table');
+        const rows = table.querySelectorAll('tbody tr');
+        
+        // Apply filters when changed
+        clientFilter.addEventListener('change', applyFilters);
+        monthFilter.addEventListener('change', applyFilters);
+        searchFilter.addEventListener('input', applyFilters);
+        
+        function applyFilters() {
+            const clientValue = clientFilter.value;
+            const monthValue = monthFilter.value;
+            const searchValue = searchFilter.value.toLowerCase();
+            
+            rows.forEach(row => {
+                const clientMatch = clientValue === 'all' || row.getAttribute('data-client') === clientValue;
+                const monthMatch = monthValue === 'all' || row.getAttribute('data-month') === monthValue;
+                
+                // Search in all cells
+                let searchMatch = true;
+                if (searchValue) {
+                    searchMatch = Array.from(row.cells).some(cell => 
+                        cell.textContent.toLowerCase().includes(searchValue)
+                    );
+                }
+                
+                // Show/hide row based on filters
+                if (clientMatch && monthMatch && searchMatch) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Update stats based on visible rows
+            updateFilteredStats();
+        }
+        
+        function updateFilteredStats() {
+            // Count visible rows
+            const visibleRows = Array.from(rows).filter(row => row.style.display !== 'none');
+            
+            // Update total invoices stat
+            document.querySelector('.stat-card:nth-child(1) h3').textContent = visibleRows.length;
+            
+            // Calculate total amount from visible rows
+            let totalAmount = 0;
+            visibleRows.forEach(row => {
+                const amountCell = row.querySelector('td[data-value]:nth-child(5)');
+                totalAmount += parseFloat(amountCell.getAttribute('data-value'));
+            });
+            
+            // Update total amount stat
+            const currencySymbol = '{{ currency_symbol }}';
+            document.querySelector('.stat-card:nth-child(2) h3').textContent = 
+                currencySymbol + totalAmount.toFixed(2);
+            
+            // Count unique clients
+            const uniqueClients = new Set();
+            visibleRows.forEach(row => {
+                uniqueClients.add(row.getAttribute('data-client'));
+            });
+            
+            // Update unique clients stat
+            document.querySelector('.stat-card:nth-child(3) h3').textContent = uniqueClients.size;
+        }
+    });
+    
+    // Confirm delete function
+    function confirmDelete(invoiceNumber) {
+        if (confirm('Are you sure you want to delete invoice ' + invoiceNumber + '? This action cannot be undone.')) {
+            window.location.href = '/delete_invoice/' + invoiceNumber;
+        }
+    }
+</script>
+{% endblock %}

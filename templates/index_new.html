@@ -1,0 +1,479 @@
+{% extends "base.html" %}
+
+{% block title %}Invoice Generator 2025{% endblock %}
+
+{% block extra_styles %}
+/* Bento Box Layout */
+.bento-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-auto-rows: minmax(100px, auto);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.bento-item {
+    background: var(--card-background);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.bento-item:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-md);
+}
+
+.bento-item.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.card-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.card-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+/* Form Styles */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background-color: var(--input-background);
+    color: var(--text-primary);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: var(--accent-color);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(var(--accent-color-rgb), 0.2);
+}
+
+/* Selection Buttons */
+.selection-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.selection-button {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background-color: var(--input-background);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.selection-button:hover {
+    border-color: var(--accent-color);
+    transform: translateY(-2px);
+}
+
+.selection-button.selected {
+    border-color: var(--accent-color);
+    background-color: rgba(var(--accent-color-rgb), 0.1);
+}
+
+.selection-button input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+}
+
+.selection-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--accent-color);
+    color: white;
+    margin-right: 1rem;
+    flex-shrink: 0;
+}
+
+.selection-content {
+    flex: 1;
+}
+
+.selection-title {
+    font-weight: 600;
+    margin: 0 0 0.25rem 0;
+}
+
+.selection-subtitle {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+/* Checkbox Styles */
+.checkbox-group {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.custom-checkbox {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.custom-checkbox input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.checkmark {
+    position: relative;
+    height: 20px;
+    width: 20px;
+    background-color: var(--input-background);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    margin-right: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.custom-checkbox:hover input ~ .checkmark {
+    border-color: var(--accent-color);
+}
+
+.custom-checkbox input:checked ~ .checkmark {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+}
+
+.checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+}
+
+.custom-checkbox input:checked ~ .checkmark:after {
+    display: block;
+}
+
+.custom-checkbox .checkmark:after {
+    left: 7px;
+    top: 3px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+/* Button Styles */
+.btn {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: var(--border-radius);
+    background-color: var(--accent-color);
+    color: white;
+    font-weight: 500;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    background-color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+}
+
+.btn-block {
+    display: block;
+    width: 100%;
+}
+
+/* Table Styles */
+.table-responsive {
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th,
+.table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.table th {
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.table tbody tr {
+    transition: background-color 0.3s ease;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(var(--accent-color-rgb), 0.05);
+}
+
+.table-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem;
+    border-radius: var(--border-radius);
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.action-btn i {
+    margin-right: 0.25rem;
+}
+
+.action-btn-view {
+    background-color: rgba(var(--primary-color-rgb), 0.1);
+    color: var(--primary-color);
+}
+
+.action-btn-view:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.action-btn-delete {
+    background-color: rgba(var(--danger-color-rgb), 0.1);
+    color: var(--danger-color);
+}
+
+.action-btn-delete:hover {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .selection-container {
+        grid-template-columns: 1fr;
+    }
+
+    .checkbox-group {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .mobile-hide {
+        display: none;
+    }
+}
+
+/* Animation Delay for Bento Items */
+.bento-item:nth-child(1) { transition-delay: 0.1s; }
+.bento-item:nth-child(2) { transition-delay: 0.2s; }
+.bento-item:nth-child(3) { transition-delay: 0.3s; }
+.bento-item:nth-child(4) { transition-delay: 0.4s; }
+.bento-item:nth-child(5) { transition-delay: 0.5s; }
+{% endblock %}
+
+{% block content %}
+<div class="bento-grid">
+    <div class="bento-item" style="grid-column: span 8;">
+        <div class="card-header">
+            <h2 class="card-title">Generate New Invoice</h2>
+        </div>
+        <div class="card-body">
+            <form action="/generate_invoice" method="post">
+                <div class="form-group">
+                    <label class="form-label">Select Client</label>
+                    <div class="selection-container" id="client-selection">
+                        {% for client in clients %}
+                        <label class="selection-button {% if client[0] == last_client_id %}selected{% endif %}">
+                            <input type="radio" name="client_id" value="{{ client[0] }}" {% if client[0] == last_client_id %}checked{% endif %}>
+                            <div class="selection-icon">
+                                <i class="fas fa-building"></i>
+                            </div>
+                            <div class="selection-content">
+                                <h3 class="selection-title">{{ client[1] }}</h3>
+                                <p class="selection-subtitle">{{ client[4] }}</p>
+                            </div>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Select Service</label>
+                    <div class="selection-container" id="service-selection">
+                        {% for service in services %}
+                        <label class="selection-button {% if service[0] == last_service_id %}selected{% endif %}">
+                            <input type="radio" name="service_id" value="{{ service[0] }}" {% if service[0] == last_service_id %}checked{% endif %}>
+                            <div class="selection-icon">
+                                <i class="fas fa-briefcase"></i>
+                            </div>
+                            <div class="selection-content">
+                                <h3 class="selection-title">{{ service[1] }}</h3>
+                                <p class="selection-subtitle">{{ currency_symbol }}{{ "%.2f"|format(service[2]) }} / {{ service[3] }}</p>
+                            </div>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="quantity">Quantity</label>
+                    <input type="number" class="form-control" id="quantity" name="quantity" value="1" min="1" step="1">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Tax Options</label>
+                    <div class="checkbox-group">
+                        <label class="custom-checkbox">
+                            <input type="checkbox" name="apply_iva" value="1">
+                            <span class="checkmark"></span>
+                            Apply VAT (21%)
+                        </label>
+                        <label class="custom-checkbox">
+                            <input type="checkbox" name="apply_irpf" value="1">
+                            <span class="checkmark"></span>
+                            Apply IRPF (15%)
+                        </label>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">Generate Invoice</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="bento-item" style="grid-column: span 4;">
+        <div class="card-header">
+            <h2 class="card-title">Quick Info</h2>
+        </div>
+        <div class="card-body">
+            <div id="client-details" class="details-panel">
+                <h3>Client Details</h3>
+                <div id="client-details-content"></div>
+            </div>
+            <div id="service-details" class="details-panel">
+                <h3>Service Details</h3>
+                <div id="service-details-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bento-item" style="grid-column: span 12;">
+        <div class="card-header">
+            <h2 class="card-title">Recent Invoices</h2>
+            <div class="card-actions">
+                <a href="/all_invoices" class="btn btn-sm btn-primary">
+                    <i class="fas fa-list"></i> View All Invoices
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table sortable-table" id="invoices-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-sort="invoice">Invoice # <i class="fas fa-sort"></i></th>
+                            <th class="sortable" data-sort="date">Date <i class="fas fa-sort"></i></th>
+                            <th class="mobile-hide sortable" data-sort="client">Client <i class="fas fa-sort"></i></th>
+                            <th class="mobile-hide sortable" data-sort="service">Service <i class="fas fa-sort"></i></th>
+                            <th class="sortable" data-sort="amount">Amount <i class="fas fa-sort"></i></th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for invoice in recent_invoices %}
+                        <tr>
+                            <td data-value="{{ invoice[1] }}">{{ invoice[1] }}</td>
+                            <td data-value="{{ invoice[2] }}" data-date="{{ invoice[2].split('/')[2] + invoice[2].split('/')[1] + invoice[2].split('/')[0] }}">{{ invoice[2] }}</td>
+                            <td class="mobile-hide" data-value="{{ invoice[3] }}">{{ invoice[3] }}</td>
+                            <td class="mobile-hide" data-value="{{ invoice[4] }}">{{ invoice[4] }}</td>
+                            <td data-value="{{ invoice[6] }}">
+                                {{ invoice[10] }}{{ "%.2f"|format(invoice[6]) }}
+                                {% if invoice[7] %}<small>+VAT</small>{% endif %}
+                                {% if invoice[8] %}<small>-IRPF</small>{% endif %}
+                            </td>
+                            <td>
+                                <div class="table-actions">
+                                    <a href="/view_invoice/{{ invoice[1] }}" class="action-btn action-btn-view">
+                                        <i class="fas fa-eye"></i> View
+                                    </a>
+                                    <a href="#" onclick="confirmDelete('{{ invoice[1] }}')" class="action-btn action-btn-delete">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Confirm delete function
+    function confirmDelete(invoiceNumber) {
+        if (confirm('Are you sure you want to delete invoice ' + invoiceNumber + '? This action cannot be undone.')) {
+            window.location.href = '/delete_invoice/' + invoiceNumber;
+        }
+    }
+</script>
+{% endblock %}

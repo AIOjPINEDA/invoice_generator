@@ -1,0 +1,38 @@
+/* 
+ * Cursor Fix CSS
+ * Ensures classic cursor styles are applied throughout the application
+ */
+
+/* Default cursor for body and general elements */
+body, html {
+  cursor: default !important;
+}
+
+/* Pointer cursor for interactive elements */
+a, button, .btn, .selection-button, .action-btn, 
+input[type="checkbox"], .theme-toggle, 
+input[type="number"], select, label, 
+.custom-checkbox, .checkmark {
+  cursor: pointer !important;
+}
+
+/* Text cursor for text input elements */
+input[type="text"], input[type="email"], 
+input[type="password"], textarea {
+  cursor: text !important;
+}
+
+/* Remove any custom cursor elements that might be present */
+.custom-cursor, .cursor-dot {
+  display: none !important;
+}
+
+/* Ensure no elements have cursor: none */
+* {
+  cursor: inherit;
+}
+
+/* Specific overrides for any elements that might have cursor: none */
+[style*="cursor: none"] {
+  cursor: default !important;
+}

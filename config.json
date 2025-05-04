@@ -1,0 +1,21 @@
+{
+    "currency": {
+        "code": "EUR",
+        "symbol": "\u20ac"
+    },
+    "issuer": {
+        "name": "JAIME A. PINEDA MORENO",
+        "tax_id": "60155423G",
+        "address": "Calle arte conceptual 10 Portal 2, 5\u00baA",
+        "city": "28051 Madrid",
+        "country": "Spain",
+        "phone": "+34 602 612 640",
+        "email": "jaime.pineda@aiorchestrator.ai",
+        "bank_iban": "ES29 0182 4919 7502 0158 2010",
+        "bank_name": "BBVA"
+    },
+    "preferences": {
+        "last_client_id": 1,
+        "last_service_id": 4
+    }
+}

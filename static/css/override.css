@@ -1,0 +1,58 @@
+/* 
+ * Override styles for Invoice Generator 2025
+ * This file contains styles that override the default styles
+ */
+
+/* Override button colors */
+.btn-primary,
+.action-btn-view,
+a.btn-primary,
+button[type="submit"],
+.selection-button.selected {
+  background-color: #5a7d9a !important;
+  border-color: #5a7d9a !important;
+  color: white !important;
+}
+
+.btn-primary:hover,
+.action-btn-view:hover,
+a.btn-primary:hover,
+button[type="submit"]:hover {
+  background-color: #4a6d8a !important;
+  border-color: #4a6d8a !important;
+}
+
+/* Override action buttons */
+.action-btn-view {
+  background-color: #5a7d9a !important;
+}
+
+.action-btn-delete {
+  background-color: #e63946 !important;
+}
+
+/* Override checkboxes */
+.custom-checkbox input:checked ~ .checkmark {
+  background-color: #5a7d9a !important;
+  border-color: #5a7d9a !important;
+}
+
+/* Override focus effects */
+.form-control:focus {
+  border-color: #5a7d9a !important;
+  box-shadow: 0 0 0 0.2rem rgba(90, 125, 154, 0.25) !important;
+}
+
+/* Override table header */
+.table thead th {
+  background-color: rgba(90, 125, 154, 0.1) !important;
+}
+
+/* Override app title */
+.app-title {
+  color: #2c6bed !important;
+}
+
+.app-title::after {
+  background: linear-gradient(90deg, #2c6bed, #5a7d9a) !important;
+}

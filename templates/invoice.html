@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice {{ invoice_number }}</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --light-gray: #f5f7fa;
+            --border-color: #e1e8ed;
+            --text-dark: #2c3e50;
+            --text-muted: #7f8c8d;
+            --success-color: #27ae60;
+            --warning-color: #e67e22;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-dark);
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .invoice-container {
+            max-width: 850px;
+            margin: 20px auto;
+            background: white;
+            box-shadow: 0 1px 15px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        /* Updated header styles for better symmetry */
+        .invoice-header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .invoice-brand {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .invoice-title {
+            font-size: 28px;
+            font-weight: 500;
+            margin: 0 0 10px 0;
+            letter-spacing: 1px;
+        }
+
+        .invoice-subtitle {
+            font-size: 14px;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.8);
+            margin: 0;
+        }
+
+        .invoice-details {
+            text-align: right;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .invoice-id {
+            font-size: 22px;
+            font-weight: 500;
+            margin: 0 0 10px 0;
+            letter-spacing: 0.5px;
+        }
+
+        .invoice-date {
+            font-size: 14px;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.8);
+            margin: 0;
+        }
+
+        .invoice-body {
+            padding: 30px;
+        }
+
+        .parties-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .party-block {
+            width: 48%;
+            min-width: 250px;
+        }
+
+        .party-title {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+        }
+
+        .party-name {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .party-details {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .party-details p {
+            margin-bottom: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+        }
+
+        th {
+            background-color: var(--light-gray);
+            text-align: left;
+            padding: 12px 15px;
+            font-weight: 500;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 15px;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .amount-col {
+            text-align: right;
+            font-weight: 500;
+        }
+
+        .invoice-summary {
+            background-color: var(--light-gray);
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+        }
+
+        .summary-row.total {
+            border-top: 2px solid var(--border-color);
+            margin-top: 8px;
+            padding-top: 12px;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .payment-info {
+            margin: 30px 0;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .payment-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+
+        .payment-details {
+            background-color: var(--light-gray);
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .legal-notes {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            margin: 30px auto;
+            gap: 15px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-weight: 500;
+            text-decoration: none;
+            text-align: center;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            font-size: 14px;
+            border: none;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-secondary {
+            background-color: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+        }
+
+        @media print {
+            body {
+                background-color: white;
+                margin: 0;
+                padding: 0;
+            }
+
+            .invoice-container {
+                box-shadow: none;
+                margin: 0;
+                max-width: 100%;
+            }
+
+            .action-buttons {
+                display: none;
+            }
+
+            .invoice-header {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            th {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+
+        .invoice-brand {
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-container">
+        <div class="invoice-header">
+            <div class="invoice-brand">
+                <h1 class="invoice-title">INVOICE</h1>
+                <p class="invoice-subtitle">Professional Services</p>
+            </div>
+            <div class="invoice-details">
+                <p class="invoice-id">№: {{ invoice_number }}</p>
+                <p class="invoice-date">Issue date: {{ date }}</p>
+            </div>
+        </div>
+
+        <div class="invoice-body">
+            <div class="parties-container">
+                <div class="party-block">
+                    <h3 class="party-title">From</h3>
+                    <p class="party-name">{{ issuer.name }}</p>
+                    <div class="party-details">
+                        <p>ID: {{ issuer.tax_id }}</p>
+                        <p>Address: {{ issuer.address }}</p>
+                        <p>{{ issuer.city }}, {{ issuer.country }}</p>
+                        <p>Phone: {{ issuer.phone }}</p>
+                        <p>Email: {{ issuer.email }}</p>
+                    </div>
+                </div>
+
+                <div class="party-block">
+                    <h3 class="party-title">To</h3>
+                    <p class="party-name">{{ client[1] }}</p>
+                    <div class="party-details">
+                        <p>Tax ID: {{ client[2] }}</p>
+                        <p>{{ client[3] }}</p>
+                        <p>{{ client[4] }}</p>
+                        <p>Email: {{ client[5] }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th width="50%">Description</th>
+                        <th>Quantity</th>
+                        <th>Unit price</th>
+                        <th class="amount-col">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>{{ service[1] }}</td>
+                        <td>{{ quantity }}</td>
+                        <td>{{ currency_symbol }}{{ "%.2f"|format(service[2]) }}/{{ service[3] }}</td>
+                        <td class="amount-col">{{ currency_symbol }}{{ "%.2f"|format(subtotal) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="invoice-summary">
+                <div class="summary-row">
+                    <span>Subtotal</span>
+                    <span>{{ currency_symbol }}{{ "%.2f"|format(subtotal) }}</span>
+                </div>
+                {% if iva > 0 %}
+                <div class="summary-row">
+                    <span>VAT (21%)</span>
+                    <span>{{ currency_symbol }}{{ "%.2f"|format(iva) }}</span>
+                </div>
+                {% else %}
+                <div class="summary-row">
+                    <span>VAT</span>
+                    <span>Not applicable</span>
+                </div>
+                {% endif %}
+
+                {% if irpf > 0 %}
+                <div class="summary-row">
+                    <span>Income Tax (15%)</span>
+                    <span>-{{ currency_symbol }}{{ "%.2f"|format(irpf) }}</span>
+                </div>
+                {% else %}
+                <div class="summary-row">
+                    <span>Income Tax</span>
+                    <span>Not applicable</span>
+                </div>
+                {% endif %}
+
+                <div class="summary-row total">
+                    <span>TOTAL</span>
+                    <span>{{ currency_symbol }}{{ "%.2f"|format(total) }}</span>
+                </div>
+            </div>
+
+            <div class="payment-info">
+                <h3 class="payment-title">PAYMENT METHOD</h3>
+                <div class="payment-details">
+                    <p>Bank transfer</p>
+                    <p>IBAN: {{ issuer.bank_iban }}</p>
+                    <p>Bank: {{ issuer.bank_name }}</p>
+                </div>
+            </div>
+
+            <div class="legal-notes">
+                <p>Invoice subject to freelancer regime according to current legislation.</p>
+                <p>Payment period according to Law 15/2010: 30 days from issue date.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="action-buttons">
+        <a href="javascript:window.print()" class="btn btn-primary">Print Invoice</a>
+        <a href="/" class="btn btn-secondary">Return</a>
+    </div>
+
+    <script>
+        // Auto-print when page loads (optional)
+        // window.onload = function() {
+        //     window.print();
+        // }
+    </script>
+</body>
+</html>
