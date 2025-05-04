@@ -22,19 +22,31 @@ A minimalist Flask application for generating invoices with automatic tax calcul
    cd invoice_generator
    ```
 
-2. Install Flask:
+2. Create and activate a virtual environment (recommended):
+   ```bash
+   # Create a virtual environment named 'venv'
+   python -m venv venv
+
+   # Activate the virtual environment
+   # On macOS/Linux:
+   source venv/bin/activate
+   # On Windows:
+   # venv\Scripts\activate
+   ```
+
+3. Install Flask:
    ```bash
    pip install flask
    ```
 
-3. Run the application:
+4. Run the application:
    ```bash
    ./run.sh
    ```
 
 ## Running the Application
 
-The `run.sh` script provides a simple way to start the application:
+The `run.sh` script provides a simple way to start the application. It will automatically activate the virtual environment if it exists in the `venv` directory:
 
 ```bash
 # Default usage (port 8888)
@@ -43,11 +55,14 @@ The `run.sh` script provides a simple way to start the application:
 # Custom port
 ./run.sh 9000
 
+# Don't open browser automatically
+./run.sh --no-browser
+
 # Show help
 ./run.sh --help
 ```
 
-The browser will open automatically when the application starts.
+The browser will open automatically when the application starts (unless you use the --no-browser option).
 
 ## Configuration
 
