@@ -181,10 +181,12 @@ def register_expense_routes(app):
                 default_source = request.form.get('default_source')
 
                 # Import expenses from file
-                result = expenses.import_bbva_statement(
+                from src.finance.bbva_import import import_bbva_statement
+                result = import_bbva_statement(
                     temp_path,
                     default_expense_category=default_category,
-                    default_income_source=default_source
+                    default_income_source=default_source,
+                    check_duplicates=True
                 )
 
                 # Remove temporary file
@@ -192,7 +194,12 @@ def register_expense_routes(app):
                 os.remove(temp_path)
 
                 if result['success']:
-                    flash(f"Successfully imported {result['expenses_imported']} expenses and {result['incomes_imported']} incomes", 'success')
+                    # Check if there are duplicates
+                    if 'duplicates' in result and result['duplicates']:
+                        duplicate_count = len(result['duplicates'])
+                        flash(f"Successfully imported {result['expenses_imported']} expenses and {result['incomes_imported']} incomes. Found {duplicate_count} potential duplicates.", 'warning')
+                    else:
+                        flash(f"Successfully imported {result['expenses_imported']} expenses and {result['incomes_imported']} incomes", 'success')
                 else:
                     flash(f"Error importing data: {result['message']}", 'error')
             except Exception as e:

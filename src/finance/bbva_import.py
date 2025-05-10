@@ -1,11 +1,13 @@
 """
 BBVA bank statement import functionality.
 """
+import os
 import openpyxl
 from datetime import datetime
 from src.finance import expenses
+from src.finance.category_matcher import match_expense_category, match_income_source
 
-def import_bbva_statement(file_path, default_expense_category=None, default_income_source=None):
+def import_bbva_statement(file_path, default_expense_category=None, default_income_source=None, check_duplicates=True):
     """
     Import expenses and incomes from BBVA bank statement.
 
@@ -13,10 +15,20 @@ def import_bbva_statement(file_path, default_expense_category=None, default_inco
         file_path: Path to the BBVA Excel file
         default_expense_category: Default category ID for expenses
         default_income_source: Default source ID for incomes
+        check_duplicates: Whether to check for duplicate transactions
 
     Returns:
         dict: Result of the import operation
     """
+    if not os.path.exists(file_path):
+        return {
+            'success': False,
+            'message': f'File not found: {file_path}',
+            'expenses_imported': 0,
+            'incomes_imported': 0,
+            'errors': [f'File not found: {file_path}']
+        }
+
     try:
         # Load the workbook
         wb = openpyxl.load_workbook(file_path)
@@ -36,17 +48,11 @@ def import_bbva_statement(file_path, default_expense_category=None, default_inco
         expenses_imported = 0
         incomes_imported = 0
         errors = []
+        transactions = []
 
         # Process each row
         for row in data_rows:
             try:
-                # This is a placeholder implementation
-                # The actual implementation would depend on the structure of the BBVA Excel file
-                # For now, we'll assume a simple structure:
-                # - Column 0: Date
-                # - Column 1: Description
-                # - Column 2: Amount
-
                 # Skip empty rows
                 if not row or len(row) < 3:
                     continue
@@ -71,18 +77,35 @@ def import_bbva_statement(file_path, default_expense_category=None, default_inco
                         # If parsing fails, use the original value
                         date_str = str(date)
 
+                # Clean up description
+                if description:
+                    description = str(description).strip()
+                else:
+                    description = "Sin descripción"
+
+                # Add transaction to list for duplicate checking
+                transactions.append({
+                    'date': date_str,
+                    'description': description,
+                    'amount': amount,
+                    'type': 'expense' if amount < 0 else 'income'
+                })
+
                 # Determine if it's an expense or income based on the amount
                 if amount < 0:
                     # It's an expense (negative amount)
                     # Make the amount positive for storage
                     amount = abs(amount)
 
-                    # Categorize the expense based on the description
-                    category_id = categorize_expense(description)
+                    # Categorize the expense based on the description using the improved matcher
+                    category_id = match_expense_category(description)
 
                     # If no category was found, use the default
                     if not category_id and default_expense_category:
                         category_id = default_expense_category
+
+                    # Determine payment method based on description
+                    payment_method = 'Tarjeta' if 'TARJETA' in description.upper() else 'Transferencia'
 
                     # If we have a category, save the expense
                     if category_id:
@@ -91,15 +114,15 @@ def import_bbva_statement(file_path, default_expense_category=None, default_inco
                             description=description,
                             amount=amount,
                             date=date_str,
-                            payment_method='Bank Transfer',
+                            payment_method=payment_method,
                             notes='Imported from BBVA statement',
                             tax_deductible=is_tax_deductible(description, category_id)
                         )
                         expenses_imported += 1
                 else:
                     # It's an income (positive amount)
-                    # Categorize the income based on the description
-                    source_id = categorize_income(description)
+                    # Categorize the income based on the description using the improved matcher
+                    source_id = match_income_source(description)
 
                     # If no source was found, use the default
                     if not source_id and default_income_source:
@@ -119,13 +142,23 @@ def import_bbva_statement(file_path, default_expense_category=None, default_inco
             except Exception as e:
                 errors.append(str(e))
 
-        return {
+        result = {
             'success': True,
             'message': f'Successfully imported {expenses_imported} expenses and {incomes_imported} incomes',
             'expenses_imported': expenses_imported,
             'incomes_imported': incomes_imported,
-            'errors': errors
+            'errors': errors,
+            'transactions': transactions
         }
+
+        # Check for duplicates if requested
+        if check_duplicates and transactions:
+            duplicates = detect_duplicate_transactions(transactions)
+            if duplicates:
+                result['duplicates'] = duplicates
+                result['message'] += f' (Found {len(duplicates)} potential duplicates)'
+
+        return result
 
     except Exception as e:
         return {
@@ -136,71 +169,74 @@ def import_bbva_statement(file_path, default_expense_category=None, default_inco
             'errors': [str(e)]
         }
 
-def categorize_expense(description):
+def detect_duplicate_transactions(transactions, days_threshold=3):
     """
-    Categorize an expense based on its description.
+    Detect potential duplicate transactions in the database.
 
     Args:
-        description: The expense description
+        transactions (list): List of transaction dictionaries
+        days_threshold (int): Number of days to consider for duplicates
 
     Returns:
-        int: Category ID or None if no match
+        list: List of potential duplicate transactions
     """
-    # Convert description to lowercase for case-insensitive matching
-    desc_lower = description.lower()
+    # Get existing transactions from database
+    existing_expenses = expenses.get_expenses()
+    existing_incomes = expenses.get_incomes()
 
-    # Define category mappings (description keywords -> category ID)
-    category_mappings = {
-        1: ['oficina', 'material', 'papeleria', 'tinta', 'impresora'],
-        2: ['transporte', 'taxi', 'uber', 'cabify', 'metro', 'bus', 'tren', 'renfe', 'gasolina', 'parking', 'peaje'],
-        3: ['restaurante', 'comida', 'cafe', 'bar', 'menu', 'cena', 'almuerzo', 'desayuno'],
-        4: ['abogado', 'notario', 'gestor', 'asesor', 'consultor'],
-        5: ['seguridad social', 'cotizacion', 'autonomos'],
-        6: ['seguro medico', 'adeslas', 'sanitas', 'asisa', 'dkv'],
-        7: ['luz', 'agua', 'gas', 'internet', 'telefono', 'movil', 'movistar', 'vodafone', 'orange'],
-        8: ['ordenador', 'portatil', 'movil', 'tablet', 'monitor', 'teclado', 'raton', 'software'],
-        9: ['curso', 'formacion', 'libro', 'conferencia', 'seminario', 'taller'],
-        10: []  # Others (default)
-    }
+    # Convert to dictionaries for easier comparison
+    existing_transactions = []
 
-    # Check if description contains any of the keywords
-    for category_id, keywords in category_mappings.items():
-        for keyword in keywords:
-            if keyword in desc_lower:
-                return category_id
+    for expense in existing_expenses:
+        existing_transactions.append({
+            'id': expense[0],
+            'date': expense[3],
+            'description': expense[2],
+            'amount': -expense[4],  # Negative for expenses
+            'type': 'expense'
+        })
 
-    # If no match found, return None
-    return None
+    for income in existing_incomes:
+        existing_transactions.append({
+            'id': income[0],
+            'date': income[3],
+            'description': income[2],
+            'amount': income[4],
+            'type': 'income'
+        })
 
-def categorize_income(description):
-    """
-    Categorize an income based on its description.
+    # Find potential duplicates
+    duplicates = []
 
-    Args:
-        description: The income description
+    for new_trans in transactions:
+        for existing in existing_transactions:
+            # Check if amounts match
+            if abs(new_trans['amount'] - existing['amount']) < 0.01:
+                # Check if descriptions are similar
+                if (new_trans['description'].lower() in existing['description'].lower() or
+                    existing['description'].lower() in new_trans['description'].lower()):
 
-    Returns:
-        int: Source ID or None if no match
-    """
-    # Convert description to lowercase for case-insensitive matching
-    desc_lower = description.lower()
+                    # Check if dates are close
+                    try:
+                        new_date = datetime.strptime(new_trans['date'], '%d/%m/%Y')
+                        existing_date = datetime.strptime(existing['date'], '%d/%m/%Y')
+                        days_diff = abs((new_date - existing_date).days)
 
-    # Define source mappings (description keywords -> source ID)
-    source_mappings = {
-        1: ['factura', 'pago', 'cliente', 'servicio', 'honorarios', 'consulting'],
-        2: ['devolucion', 'hacienda', 'agencia tributaria', 'aeat', 'reembolso'],
-        3: ['subvencion', 'ayuda', 'beca', 'grant'],
-        4: []  # Others (default)
-    }
+                        if days_diff <= days_threshold:
+                            duplicates.append({
+                                'new_transaction': new_trans,
+                                'existing_transaction': existing,
+                                'days_difference': days_diff
+                            })
+                    except ValueError:
+                        # If date parsing fails, still consider it a potential duplicate
+                        duplicates.append({
+                            'new_transaction': new_trans,
+                            'existing_transaction': existing,
+                            'days_difference': 'unknown'
+                        })
 
-    # Check if description contains any of the keywords
-    for source_id, keywords in source_mappings.items():
-        for keyword in keywords:
-            if keyword in desc_lower:
-                return source_id
-
-    # If no match found, return None
-    return None
+    return duplicates
 
 def is_tax_deductible(description, category_id):
     """
