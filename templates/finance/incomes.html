@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block title %}Incomes - Invoice Generator 2025{% endblock %}
+
+{% block extra_styles %}
+/* Bento Grid Layout */
+.bento-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-auto-rows: minmax(100px, auto);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.bento-item {
+    background: var(--card-background);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.bento-item:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-md);
+}
+
+.bento-item.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.card-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    background-color: var(--input-background);
+    color: var(--text-primary);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(var(--primary-color-rgb), 0.25);
+    outline: none;
+}
+
+.form-row {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.form-row .form-group {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .form-row {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+}
+{% endblock %}
+
+{% block content %}
+<div class="bento-grid">
+    <div class="bento-item" style="grid-column: span 8;">
+        <div class="card-header">
+            <h2 class="card-title">Add New Income</h2>
+        </div>
+        <div class="card-body">
+            <form action="/add_income" method="post">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Source</label>
+                        <select name="source_id" class="form-control" required>
+                            <option value="">Select Source</option>
+                            {% for source in sources %}
+                            <option value="{{ source[0] }}">{{ source[1] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Amount (€)</label>
+                        <input type="number" name="amount" class="form-control" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Date</label>
+                        <input type="date" name="date" class="form-control" value="{{ today_date }}" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <input type="text" name="description" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notes</label>
+                    <input type="text" name="notes" class="form-control">
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Add Income
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="bento-item" style="grid-column: span 4;">
+        <div class="card-header">
+            <h2 class="card-title">Income Sources</h2>
+        </div>
+        <div class="card-body">
+            <div id="incomeSourcesChart"></div>
+        </div>
+    </div>
+
+    <div class="bento-item" style="grid-column: span 12;">
+        <div class="card-header">
+            <h2 class="card-title">Recent Incomes</h2>
+            <div class="card-actions">
+                <a href="/financial_summary" class="btn btn-sm btn-primary">
+                    <i class="fas fa-chart-line"></i> Financial Summary
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table sortable-table" id="incomes-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-sort="date">Date <i class="fas fa-sort"></i></th>
+                            <th class="sortable" data-sort="source">Source <i class="fas fa-sort"></i></th>
+                            <th class="sortable" data-sort="description">Description <i class="fas fa-sort"></i></th>
+                            <th class="sortable" data-sort="amount">Amount <i class="fas fa-sort"></i></th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for income in recent_incomes %}
+                        <tr>
+                            <td data-value="{{ income[3] }}" data-date="{{ income[3].split('/')[2] + income[3].split('/')[1] + income[3].split('/')[0] }}">{{ income[3] }}</td>
+                            <td data-value="{{ income[5] }}">{{ income[5] }}</td>
+                            <td data-value="{{ income[2] }}">{{ income[2] }}</td>
+                            <td data-value="{{ income[3] }}">€{{ "%.2f"|format(income[3]) }}</td>
+                            <td>
+                                <div class="table-actions">
+                                    <a href="#" onclick="editIncome({{ income[0] }})" class="action-btn action-btn-view">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                    <a href="#" onclick="confirmDeleteIncome({{ income[0] }})" class="action-btn action-btn-delete">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize income sources chart
+        initializeIncomeSourcesChart();
+        
+        // Initialize sortable tables
+        initializeSortableTables();
+        
+        // Animate bento items
+        animateBentoItems();
+    });
+    
+    function initializeIncomeSourcesChart() {
+        // Sample data for chart (would be replaced with actual data)
+        const sources = [
+            {% for source in sources %}
+            "{{ source[1] }}",
+            {% endfor %}
+        ];
+        
+        const amounts = [
+            {% for source in sources %}
+            Math.floor(Math.random() * 1000) + 500, // Random data for demonstration
+            {% endfor %}
+        ];
+        
+        // Create chart
+        const options = {
+            series: amounts,
+            chart: {
+                type: 'donut',
+                height: 350
+            },
+            labels: sources,
+            responsive: [{
+                breakpoint: 480,
+                options: {
+                    chart: {
+                        height: 300
+                    },
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }],
+            colors: ['#5a7d9a', '#3a86ff', '#8338ec', '#ff006e']
+        };
+        
+        const chart = new ApexCharts(document.getElementById('incomeSourcesChart'), options);
+        chart.render();
+    }
+    
+    function editIncome(incomeId) {
+        // This function would be implemented to edit an income
+        console.log('Edit income:', incomeId);
+    }
+    
+    function confirmDeleteIncome(incomeId) {
+        // This function would be implemented to confirm deletion of an income
+        console.log('Delete income:', incomeId);
+    }
+</script>
+{% endblock %}

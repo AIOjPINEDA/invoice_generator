@@ -7,7 +7,7 @@ from datetime import datetime
 from contextlib import contextmanager
 
 # Database file
-DB_FILE = 'invoices.db'
+DB_FILE = 'db/invoices.db'
 
 @contextmanager
 def get_db_connection():

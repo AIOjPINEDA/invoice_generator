@@ -16,12 +16,12 @@ build/
 *.egg-info/
 
 # Archivos de base de datos SQLite
-# Ahora que ya hemos subido la versión vacía, excluimos todas las bases de datos
-# para que los cambios locales no se suban al repositorio
-invoices.db
-invoices_personal.db
-*.sqlite3
-invoices_temp.db
+# Excluimos todas las bases de datos para que los cambios locales no se suban al repositorio
+db/*.db
+db/*.sqlite
+db/*.sqlite3
+# Excepto la plantilla vacía
+!db/template.db
 
 # Archivos de log
 *.log

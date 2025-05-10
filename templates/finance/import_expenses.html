@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}Import Expenses - Invoice Generator 2025{% endblock %}
+
+{% block extra_styles %}
+/* Bento Grid Layout */
+.bento-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-auto-rows: minmax(100px, auto);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.bento-item {
+    background: var(--card-background);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.bento-item:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-md);
+}
+
+.bento-item.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.card-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    background-color: var(--input-background);
+    color: var(--text-primary);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(var(--primary-color-rgb), 0.25);
+    outline: none;
+}
+
+.file-upload {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    border: 2px dashed var(--border-color);
+    border-radius: var(--border-radius);
+    background-color: var(--background-color);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.file-upload:hover {
+    border-color: var(--primary-color);
+    background-color: rgba(var(--primary-color-rgb), 0.05);
+}
+
+.file-upload-icon {
+    font-size: 3rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.file-upload-text {
+    font-size: 1.25rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.file-upload-subtext {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.file-upload input[type="file"] {
+    display: none;
+}
+
+.info-card {
+    background-color: rgba(var(--info-color-rgb), 0.1);
+    border-left: 4px solid var(--info-color);
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    margin-bottom: 1.5rem;
+}
+
+.info-card-title {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--info-color);
+}
+
+.info-card-text {
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+.btn-block {
+    display: block;
+    width: 100%;
+}
+{% endblock %}
+
+{% block content %}
+<div class="bento-grid">
+    <div class="bento-item" style="grid-column: span 12;">
+        <div class="card-header">
+            <h2 class="card-title">Import Expenses from BBVA Bank Statement</h2>
+        </div>
+        <div class="card-body">
+            <div class="info-card">
+                <h3 class="info-card-title"><i class="fas fa-info-circle"></i> Import Information</h3>
+                <p class="info-card-text">Upload your BBVA bank statement Excel file to automatically import your expenses and incomes. The system will try to categorize transactions based on their descriptions.</p>
+            </div>
+            
+            <form action="/import_expenses" method="post" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="file-upload" class="file-upload">
+                        <div class="file-upload-icon">
+                            <i class="fas fa-file-excel"></i>
+                        </div>
+                        <div class="file-upload-text">Drag & Drop or Click to Upload</div>
+                        <div class="file-upload-subtext">Supported format: Excel (.xlsx, .xls)</div>
+                        <input type="file" id="file-upload" name="file" accept=".xlsx, .xls" required>
+                    </label>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Default Category for Expenses</label>
+                    <select name="default_category" class="form-control">
+                        <option value="">Select Default Category</option>
+                        <option value="1">Oficina</option>
+                        <option value="2">Transporte</option>
+                        <option value="3">Comidas</option>
+                        <option value="4">Servicios Profesionales</option>
+                        <option value="5">Seguridad Social</option>
+                        <option value="6">Seguro Médico</option>
+                        <option value="7">Suministros</option>
+                        <option value="8">Equipamiento</option>
+                        <option value="9">Formación</option>
+                        <option value="10">Otros</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Default Source for Incomes</label>
+                    <select name="default_source" class="form-control">
+                        <option value="">Select Default Source</option>
+                        <option value="1">Facturas</option>
+                        <option value="2">Devoluciones</option>
+                        <option value="3">Subvenciones</option>
+                        <option value="4">Otros</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-file-import"></i> Import Bank Statement
+                    </button>
+                </div>
+                
+                <div class="form-group">
+                    <a href="/expenses" class="btn btn-secondary btn-block">
+                        <i class="fas fa-arrow-left"></i> Back to Expenses
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize file upload
+        const fileUpload = document.getElementById('file-upload');
+        const fileUploadLabel = document.querySelector('.file-upload');
+        const fileUploadText = document.querySelector('.file-upload-text');
+        
+        fileUpload.addEventListener('change', function() {
+            if (fileUpload.files.length > 0) {
+                fileUploadText.textContent = fileUpload.files[0].name;
+                fileUploadLabel.style.borderColor = 'var(--success-color)';
+                fileUploadLabel.style.backgroundColor = 'rgba(var(--success-color-rgb), 0.05)';
+            } else {
+                fileUploadText.textContent = 'Drag & Drop or Click to Upload';
+                fileUploadLabel.style.borderColor = 'var(--border-color)';
+                fileUploadLabel.style.backgroundColor = 'var(--background-color)';
+            }
+        });
+        
+        // Animate bento items
+        animateBentoItems();
+    });
+</script>
+{% endblock %}

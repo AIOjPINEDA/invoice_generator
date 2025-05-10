@@ -1,0 +1,479 @@
+{% extends "base.html" %}
+
+{% block title %}Financial Summary - Invoice Generator 2025{% endblock %}
+
+{% block extra_css %}
+<!-- ApexCharts -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+{% endblock %}
+
+{% block extra_styles %}
+/* Bento Grid Layout */
+.bento-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-auto-rows: minmax(100px, auto);
+    gap: 1.5rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+}
+
+.stats-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+}
+
+.stat-card {
+    background-color: var(--background-color);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-md);
+}
+
+.stat-icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    background-color: rgba(var(--primary-color-rgb), 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+}
+
+.stat-icon i {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.year-selector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 2rem;
+}
+
+.year-selector select {
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    background-color: var(--input-background);
+    color: var(--text-primary);
+    font-size: 1rem;
+    margin: 0 0.5rem;
+}
+
+.positive {
+    color: var(--success-color);
+}
+
+.negative {
+    color: var(--danger-color);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 992px) {
+    .stats-grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 576px) {
+    .stats-grid-4 {
+        grid-template-columns: 1fr;
+    }
+}
+{% endblock %}
+
+{% block content %}
+<!-- Year Selector -->
+<div class="year-selector">
+    <label for="year-select">Select Year:</label>
+    <select id="year-select" onchange="changeYear(this.value)">
+        {% for year in range(2020, current_year + 1) %}
+        <option value="{{ year }}" {% if year|int == selected_year|int %}selected{% endif %}>{{ year }}</option>
+        {% endfor %}
+    </select>
+</div>
+
+<!-- Bento Grid Layout -->
+<div class="bento-grid">
+    <!-- Summary Stats -->
+    <div class="bento-item" style="grid-column: span 12;">
+        <div class="card-header">
+            <h2 class="card-title">Financial Summary {{ selected_year }}</h2>
+        </div>
+        <div class="card-body">
+            <div class="stats-grid-4">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 class="stat-value">€{{ "%.2f"|format(summary.total_incomes) }}</h3>
+                        <p class="stat-label">Total Income</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 class="stat-value">€{{ "%.2f"|format(summary.total_invoices) }}</h3>
+                        <p class="stat-label">From Invoices</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 class="stat-value">€{{ "%.2f"|format(summary.total_expenses) }}</h3>
+                        <p class="stat-label">Total Expenses</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 class="stat-value {% if summary.profit >= 0 %}positive{% else %}negative{% endif %}">
+                            €{{ "%.2f"|format(summary.profit) }}
+                        </h3>
+                        <p class="stat-label">Net Profit</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Income vs Expenses Chart -->
+    <div class="bento-item" style="grid-column: span 8;">
+        <div class="card-header">
+            <h2 class="card-title">Monthly Income vs Expenses</h2>
+        </div>
+        <div class="card-body">
+            <div id="incomeExpensesChart"></div>
+        </div>
+    </div>
+
+    <!-- Tax Summary -->
+    <div class="bento-item" style="grid-column: span 4;">
+        <div class="card-header">
+            <h2 class="card-title">Tax Summary</h2>
+        </div>
+        <div class="card-body">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-receipt"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 class="stat-value">€{{ "%.2f"|format(summary.tax_deductible) }}</h3>
+                        <p class="stat-label">Tax Deductible Expenses</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-percentage"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 class="stat-value">{{ "%.1f"|format(summary.tax_deductible / summary.total_expenses * 100 if summary.total_expenses > 0 else 0) }}%</h3>
+                        <p class="stat-label">Of Total Expenses</p>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 1.5rem;">
+                <a href="#" class="btn btn-primary btn-block" onclick="generateTaxReport()">
+                    <i class="fas fa-file-export"></i> Generate Tax Report
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expense Categories Chart -->
+    <div class="bento-item" style="grid-column: span 6;">
+        <div class="card-header">
+            <h2 class="card-title">Expense Categories</h2>
+        </div>
+        <div class="card-body">
+            <div id="expenseCategoriesChart"></div>
+        </div>
+    </div>
+
+    <!-- Quarterly Summary -->
+    <div class="bento-item" style="grid-column: span 6;">
+        <div class="card-header">
+            <h2 class="card-title">Quarterly Summary</h2>
+        </div>
+        <div class="card-body">
+            <div id="quarterlySummaryChart"></div>
+        </div>
+    </div>
+
+    <!-- Tax Deductible Expenses -->
+    <div class="bento-item" style="grid-column: span 12;">
+        <div class="card-header">
+            <h2 class="card-title">Tax Deductible Expenses</h2>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table sortable-table" id="tax-deductible-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-sort="date">Date <i class="fas fa-sort"></i></th>
+                            <th class="sortable" data-sort="category">Category <i class="fas fa-sort"></i></th>
+                            <th class="sortable" data-sort="description">Description <i class="fas fa-sort"></i></th>
+                            <th class="sortable" data-sort="amount">Amount <i class="fas fa-sort"></i></th>
+                            <th class="mobile-hide sortable" data-sort="payment">Payment Method <i class="fas fa-sort"></i></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for expense in tax_deductible %}
+                        <tr>
+                            <td data-value="{{ expense[3] }}" data-date="{{ expense[3].split('/')[2] + expense[3].split('/')[1] + expense[3].split('/')[0] }}">{{ expense[3] }}</td>
+                            <td data-value="{{ expense[10] }}">{{ expense[10] }}</td>
+                            <td data-value="{{ expense[2] }}">{{ expense[2] }}</td>
+                            <td data-value="{{ expense[3] }}">€{{ "%.2f"|format(expense[3]) }}</td>
+                            <td data-value="{{ expense[4] }}">{{ expense[4] }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Function to change year and reload dashboard
+    function changeYear(year) {
+        window.location.href = '/financial_summary?year=' + year;
+    }
+    
+    // Function to generate tax report
+    function generateTaxReport() {
+        alert('Tax report generation will be implemented here');
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize charts
+        initializeIncomeExpensesChart();
+        initializeExpenseCategoriesChart();
+        initializeQuarterlySummaryChart();
+        
+        // Initialize sortable tables
+        initializeSortableTables();
+        
+        // Animate bento items
+        animateBentoItems();
+    });
+    
+    function initializeIncomeExpensesChart() {
+        // Sample data for chart (would be replaced with actual data)
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const incomes = [1500, 2200, 1800, 2400, 2000, 2100, 2300, 2500, 2700, 2900, 3100, 3300];
+        const expenses = [800, 1200, 900, 1100, 1000, 1300, 1100, 1400, 1200, 1500, 1300, 1600];
+        
+        // Create chart
+        const options = {
+            series: [{
+                name: 'Income',
+                data: incomes
+            }, {
+                name: 'Expenses',
+                data: expenses
+            }],
+            chart: {
+                type: 'bar',
+                height: 350,
+                stacked: false,
+                toolbar: {
+                    show: true
+                }
+            },
+            plotOptions: {
+                bar: {
+                    horizontal: false,
+                    columnWidth: '55%',
+                    endingShape: 'rounded'
+                },
+            },
+            dataLabels: {
+                enabled: false
+            },
+            stroke: {
+                show: true,
+                width: 2,
+                colors: ['transparent']
+            },
+            xaxis: {
+                categories: months,
+            },
+            yaxis: {
+                title: {
+                    text: '€ (euros)'
+                }
+            },
+            fill: {
+                opacity: 1
+            },
+            tooltip: {
+                y: {
+                    formatter: function (val) {
+                        return "€" + val.toFixed(2)
+                    }
+                }
+            },
+            colors: ['#5a7d9a', '#ff5252']
+        };
+        
+        const chart = new ApexCharts(document.getElementById('incomeExpensesChart'), options);
+        chart.render();
+    }
+    
+    function initializeExpenseCategoriesChart() {
+        // Sample data for chart (would be replaced with actual data)
+        const categories = [
+            {% for category, amount in expense_stats %}
+            "{{ category }}",
+            {% endfor %}
+        ];
+        
+        const amounts = [
+            {% for category, amount in expense_stats %}
+            {{ amount }},
+            {% endfor %}
+        ];
+        
+        // Create chart
+        const options = {
+            series: amounts,
+            chart: {
+                type: 'donut',
+                height: 350
+            },
+            labels: categories,
+            responsive: [{
+                breakpoint: 480,
+                options: {
+                    chart: {
+                        height: 300
+                    },
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }],
+            colors: ['#5a7d9a', '#3a86ff', '#8338ec', '#ff006e', '#ffbe0b', '#38b000', '#ff5252', '#0dcaf0']
+        };
+        
+        const chart = new ApexCharts(document.getElementById('expenseCategoriesChart'), options);
+        chart.render();
+    }
+    
+    function initializeQuarterlySummaryChart() {
+        // Sample data for chart (would be replaced with actual data)
+        const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
+        const incomes = [5500, 6500, 7500, 9300];
+        const expenses = [2900, 3400, 3700, 4400];
+        const profits = incomes.map((income, index) => income - expenses[index]);
+        
+        // Create chart
+        const options = {
+            series: [{
+                name: 'Income',
+                data: incomes
+            }, {
+                name: 'Expenses',
+                data: expenses
+            }, {
+                name: 'Profit',
+                data: profits
+            }],
+            chart: {
+                type: 'bar',
+                height: 350,
+                stacked: false,
+                toolbar: {
+                    show: true
+                }
+            },
+            plotOptions: {
+                bar: {
+                    horizontal: false,
+                    columnWidth: '55%',
+                    endingShape: 'rounded'
+                },
+            },
+            dataLabels: {
+                enabled: false
+            },
+            stroke: {
+                show: true,
+                width: 2,
+                colors: ['transparent']
+            },
+            xaxis: {
+                categories: quarters,
+            },
+            yaxis: {
+                title: {
+                    text: '€ (euros)'
+                }
+            },
+            fill: {
+                opacity: 1
+            },
+            tooltip: {
+                y: {
+                    formatter: function (val) {
+                        return "€" + val.toFixed(2)
+                    }
+                }
+            },
+            colors: ['#5a7d9a', '#ff5252', '#38b000']
+        };
+        
+        const chart = new ApexCharts(document.getElementById('quarterlySummaryChart'), options);
+        chart.render();
+    }
+</script>
+{% endblock %}

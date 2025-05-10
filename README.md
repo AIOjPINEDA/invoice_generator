@@ -1,6 +1,6 @@
 # Invoice Generator 2025
 
-A minimalist Flask application for generating invoices with automatic tax calculations and data visualization.
+A minimalist Flask application for generating invoices with automatic tax calculations, expense tracking, and data visualization.
 
 ## Features
 
@@ -12,7 +12,9 @@ A minimalist Flask application for generating invoices with automatic tax calcul
 - Previous month invoice numbering
 - Recent invoices with view and delete options
 - Dashboard with interactive charts
-- Client and service management
+- Expense and income tracking
+- BBVA bank statement import
+- Financial summary and tax reports
 
 ## Installation
 
@@ -22,21 +24,23 @@ A minimalist Flask application for generating invoices with automatic tax calcul
    cd invoice_generator
    ```
 
-2. Create and activate a virtual environment (recommended):
+2. Set up the conda environment:
    ```bash
-   # Create a virtual environment named 'venv'
-   python -m venv venv
-
-   # Activate the virtual environment
-   # On macOS/Linux:
-   source venv/bin/activate
-   # On Windows:
-   # venv\Scripts\activate
+   # Run the setup script to create the conda environment
+   ./setup_conda.sh
    ```
+   This script will create a conda environment named `invoice_generator` with all the required dependencies.
 
-3. Install Flask:
+   Alternatively, you can create the environment manually:
    ```bash
-   pip install flask
+   # Using conda
+   conda env create -f environment.yml
+
+   # Or using mamba (faster)
+   mamba env create -f environment.yml
+
+   # Activate the environment
+   conda activate invoice_generator
    ```
 
 4. Run the application:
@@ -46,7 +50,7 @@ A minimalist Flask application for generating invoices with automatic tax calcul
 
 ## Running the Application
 
-The `run.sh` script provides a simple way to start the application. It will automatically activate the virtual environment if it exists in the `venv` directory:
+The `run.sh` script provides a simple way to start the application. It will automatically activate the conda environment if it exists:
 
 ```bash
 # Default usage (port 8888)
@@ -100,6 +104,55 @@ The application includes a comprehensive dashboard with:
 - Client distribution (donut chart)
 - Monthly revenue (area chart)
 - Summary statistics
+
+## Expense and Income Tracking
+
+The application includes a complete expense and income tracking system:
+
+### Expenses
+- Add, edit, and delete expenses
+- Categorize expenses
+- Mark expenses as tax deductible
+- Import expenses from BBVA bank statements
+
+### Incomes
+- Add, edit, and delete incomes
+- Categorize incomes
+- Track non-invoice income
+
+### Financial Summary
+- Monthly and yearly financial overview
+- Tax deductible expenses summary
+- Profit/loss calculation
+- Tax report generation
+
+## Project Structure
+
+```
+invoice_generator/
+├── app.py                  # Main entry point
+├── run.sh                  # Execution script
+├── setup_conda.sh          # Conda environment setup
+├── clean_conda.sh          # Conda environment cleanup
+├── config.json             # Configuration
+├── environment.yml         # Conda dependencies
+├── src/                    # Source code
+│   ├── invoice/            # Invoice module
+│   ├── client/             # Client module
+│   ├── service/            # Service module
+│   └── finance/            # Finance module
+├── static/                 # Static files
+│   ├── css/                # Stylesheets
+│   ├── js/                 # JavaScript
+│   └── img/                # Images
+├── templates/              # HTML templates
+│   ├── invoice/            # Invoice templates
+│   ├── client/             # Client templates
+│   ├── service/            # Service templates
+│   └── finance/            # Finance templates
+├── scripts/                # Utility scripts
+└── data/                   # Data files
+```
 
 ## License
 

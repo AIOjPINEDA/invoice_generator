@@ -5,9 +5,13 @@ from flask import render_template, request, jsonify, redirect, flash
 from datetime import datetime
 from src import models
 from src import utils
+from src.finance import finance_routes
 
 def register_routes(app):
     """Register all application routes"""
+
+    # Register finance routes
+    finance_routes.register_expense_routes(app)
 
     @app.route('/')
     def index():

@@ -14,7 +14,7 @@ app = create_app()
 if __name__ == '__main__':
     # Start with a specific port (8888) to avoid common ports that might be in use
     port = 8888
-    
+
     print(f"Starting server on http://localhost:{port}")
     try:
         app.run(debug=True, host='0.0.0.0', port=port)

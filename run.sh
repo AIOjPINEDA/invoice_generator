@@ -4,7 +4,7 @@
 PORT=8888
 LOG_FILE="app.log"
 NO_BROWSER=false
-VENV_PATH="venv"
+CONDA_ENV="invoice_generator"
 
 # Process simple arguments
 if [ "$1" = "--help" ]; then
@@ -46,18 +46,29 @@ cleanup() {
 # Set up trap to handle Ctrl+C and other termination signals
 trap cleanup SIGINT SIGTERM EXIT
 
-# Activate virtual environment if it exists
-if [ -d "$VENV_PATH" ] && [ -f "$VENV_PATH/bin/activate" ]; then
-    echo "Activating virtual environment..."
-    source "$VENV_PATH/bin/activate"
+# Activate conda environment if it exists
+if conda info --envs | grep -q "$CONDA_ENV"; then
+    echo "Activating conda environment $CONDA_ENV..."
+    eval "$(conda shell.bash hook)"
+    conda activate "$CONDA_ENV"
 else
-    echo "Warning: Virtual environment not found at $VENV_PATH"
+    echo "Warning: Conda environment $CONDA_ENV not found"
+    echo "Creating conda environment from environment.yml..."
+    if [ -f "environment.yml" ]; then
+        mamba env create -f environment.yml
+        eval "$(conda shell.bash hook)"
+        conda activate "$CONDA_ENV"
+    else
+        echo "Error: environment.yml not found"
+        exit 1
+    fi
 fi
 
 # Check if Flask is installed
 if ! python -c "import flask" &>/dev/null; then
-    echo "Flask is not installed. Please install it with:"
-    echo "pip install flask"
+    echo "Flask is not installed in the conda environment."
+    echo "Please check the environment.yml file and recreate the environment:"
+    echo "mamba env create -f environment.yml --force"
     exit 1
 fi
 
