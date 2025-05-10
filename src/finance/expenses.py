@@ -1,10 +1,7 @@
 """
 Expenses and income tracking module for the Invoice Generator application.
 """
-import sqlite3
-import os
-from datetime import datetime
-from src.models import get_db_connection
+from src.models.db import get_db_connection
 
 def get_expense_categories():
     """Get all expense categories from the database"""
