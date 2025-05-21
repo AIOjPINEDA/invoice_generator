@@ -1,158 +1,107 @@
 # Invoice Generator 2025
 
-A minimalist Flask application for generating invoices with automatic tax calculations, expense tracking, and data visualization.
+A minimalist Flask application for generating invoices and estimates with automatic tax calculations.
 
 ## Features
 
 - Clean, minimalist responsive interface
 - Client and service management
-- Custom invoice date selection
+- Invoice and Estimate generation
+- Custom document date selection
 - Multi-currency support (USD, EUR, GBP)
 - Automatic tax calculations (VAT 21% and IRPF 15%)
-- Previous month invoice numbering
-- Recent invoices with view and delete options
-- Dashboard with interactive charts
-- Expense and income tracking
-- BBVA bank statement import
-- Financial summary and tax reports
+- Configurable invoice numbering (previous month or current month)
+- Recent documents list with view and delete options
+- Dashboard with interactive charts for invoice data
 
 ## Installation
 
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd invoice_generator
-   ```
+1.  **Clone the repository:**
+    ```bash
+    git clone <repository-url> # Replace <repository-url> with your actual repo URL
+    cd invoice_generator
+    ```
 
-2. Set up the conda environment:
-   ```bash
-   # Run the setup script to create the conda environment
-   ./setup_conda.sh
-   ```
-   This script will create a conda environment named `invoice_generator` with all the required dependencies.
+2.  **Set up the Conda environment:**
+    The `environment.yml` file specifies all dependencies.
+    ```bash
+    # Create the conda environment from the YAML file
+    conda env create -f environment.yml
 
-   Alternatively, you can create the environment manually:
-   ```bash
-   # Using conda
-   conda env create -f environment.yml
+    # Activate the newly created environment
+    conda activate invoice_generator
+    ```
+    *Note: If you prefer using Mamba (a faster Conda alternative), you can use `mamba env create -f environment.yml`.*
 
-   # Or using mamba (faster)
-   mamba env create -f environment.yml
+3.  **Initialize the database:**
+    The first time you run the application, or if the database file (`invoices.db`) is missing, it will be automatically created with a basic schema and sample data.
 
-   # Activate the environment
-   conda activate invoice_generator
-   ```
-
-4. Run the application:
-   ```bash
-   ./run.sh
-   ```
+4.  **Run the application:**
+    ```bash
+    ./run.sh
+    ```
+    The application will be accessible at `http://localhost:8888` by default.
 
 ## Running the Application
 
-The `run.sh` script provides a simple way to start the application. It will automatically activate the conda environment if it exists:
+The `run.sh` script starts the Flask development server.
 
 ```bash
-# Default usage (port 8888)
+# Default usage (starts on port 8888)
 ./run.sh
 
-# Custom port
+# Specify a custom port
 ./run.sh 9000
 
-# Don't open browser automatically
+# Start without automatically opening the browser
 ./run.sh --no-browser
 
-# Show help
+# Display help for the run script
 ./run.sh --help
 ```
 
-The browser will open automatically when the application starts (unless you use the --no-browser option).
+Ensure the `invoice_generator` Conda environment is active before running the script.
 
 ## Configuration
 
-Edit `config.json` to customize:
-
-- Issuer details (name, tax ID, address)
-- Bank information
+Edit `config.json` in the root directory to customize:
+- **Issuer Details**: Your company/freelancer name, tax ID, address, contact information.
+- **Bank Information**: IBAN and bank name for including in invoices.
+- **Currency Settings**: Default currency symbol.
+- **Invoice Numbering**: `invoice_number_use_previous_month` (true/false).
+- **Tax Rates**: Default VAT and IRPF percentages (though these can often be toggled per invoice).
 
 ## Client and Service Management
 
-The application provides a complete management interface for clients and services:
+Manage your clients and services through the dedicated sections in the web interface:
 
 ### Clients
-- Add, edit, and delete clients
-- Support for multiple currencies (EUR, USD, GBP)
-- Store client details (name, tax ID, address, email)
+- Add, edit, and delete clients.
+- Store client details: name, tax ID, address, country, email.
+- Assign a default currency (EUR, USD, GBP) to each client.
 
 ### Services
-- Add, edit, and delete services
-- Customizable unit prices and types (hour, day, month, project)
+- Add, edit, and delete services.
+- Define service descriptions, unit prices, and unit types (e.g., hour, day, project).
 
-The application automatically handles currency conversion for reporting.
+## Document Numbering
 
-## Invoice Numbering
+### Invoices
+- Default format: `YYMM-XXX-N`
+    - `YYMM`: Year and month (configurable to be the previous month or current month via `config.json`).
+    - `XXX`: Client initials (derived from client name).
+    - `N`: A sequential number for that client and month/year.
 
-Invoices use the format `YYMM-XXX-N`:
-- `YYMM`: Year and month (previous month)
-- `XXX`: Client initials
-- `N`: Sequential number
+### Estimates (Presupuestos)
+- *(This section will be updated once estimate numbering is finalized)*
 
 ## Dashboard
 
-The application includes a comprehensive dashboard with:
-- Monthly invoices by client (stacked bar chart)
-- Client distribution (donut chart)
-- Monthly revenue (area chart)
-- Summary statistics
-
-## Expense and Income Tracking
-
-The application includes a complete expense and income tracking system:
-
-### Expenses
-- Add, edit, and delete expenses
-- Categorize expenses
-- Mark expenses as tax deductible
-- Import expenses from BBVA bank statements
-
-### Incomes
-- Add, edit, and delete incomes
-- Categorize incomes
-- Track non-invoice income
-
-### Financial Summary
-- Monthly and yearly financial overview
-- Tax deductible expenses summary
-- Profit/loss calculation
-- Tax report generation
-
-## Project Structure
-
-```
-invoice_generator/
-├── app.py                  # Main entry point
-├── run.sh                  # Execution script
-├── setup_conda.sh          # Conda environment setup
-├── clean_conda.sh          # Conda environment cleanup
-├── config.json             # Configuration
-├── environment.yml         # Conda dependencies
-├── src/                    # Source code
-│   ├── invoice/            # Invoice module
-│   ├── client/             # Client module
-│   ├── service/            # Service module
-│   └── finance/            # Finance module
-├── static/                 # Static files
-│   ├── css/                # Stylesheets
-│   ├── js/                 # JavaScript
-│   └── img/                # Images
-├── templates/              # HTML templates
-│   ├── invoice/            # Invoice templates
-│   ├── client/             # Client templates
-│   ├── service/            # Service templates
-│   └── finance/            # Finance templates
-├── scripts/                # Utility scripts
-└── data/                   # Data files
-```
+The dashboard provides an overview of your invoicing activity with charts for:
+- Monthly invoice counts.
+- Monthly revenue.
+- Invoice distribution by client.
+- *(More charts can be added as new features are developed)*.
 
 ## License
 
