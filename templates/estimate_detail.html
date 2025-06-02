@@ -84,7 +84,7 @@
                 <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Home</a>
                 <a href="#" class="btn btn-primary">Print Estimate</a> 
                 <a href="#" class="btn btn-success">Convert to Invoice</a>
-                <button class="btn btn-danger" onclick="confirmDelete('{{ url_for(\'delete_estimate\', estimate_number=estimate.estimate_number) }}', 'estimate')">Delete Estimate</button>
+                <button class="btn btn-danger" onclick="confirmDelete('{{ url_for("delete_estimate", estimate_number=estimate.estimate_number) }}', 'estimate')">Delete Estimate</button>
             </div>
         </div>
     </div>

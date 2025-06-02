@@ -2,9 +2,11 @@
 Unit tests for database models in the Invoice Generator.
 """
 import unittest
+from datetime import datetime
 from tests.test_base import TestBase, DatabaseTestMixin
 from src.models.clients import add_client, get_clients
 from src.models.services import add_service, get_services
+from src.models.estimates import save_estimate, get_estimate_by_number, generate_estimate_number
 
 
 class ModelsTests(TestBase, DatabaseTestMixin):
@@ -97,6 +99,67 @@ class ModelsTests(TestBase, DatabaseTestMixin):
         self.assertColumnExists('services', 'description')
         self.assertColumnExists('services', 'unit_price')
         self.assertColumnExists('services', 'unit_type')
+
+    def test_estimate_number_generation(self):
+        """Test estimate number generation with proper format."""
+        # Arrange
+        issue_date = datetime.now()
+
+        # Act
+        estimate_number = generate_estimate_number(issue_date)
+
+        # Assert
+        self.assertIsNotNone(estimate_number)
+        self.assertIsInstance(estimate_number, str)
+
+        # Check format: YYYY-MM-PXXX
+        parts = estimate_number.split('-')
+        self.assertEqual(len(parts), 3)
+
+        # Verify year and month
+        expected_year_month = issue_date.strftime("%Y-%m")
+        actual_year_month = f"{parts[0]}-{parts[1]}"
+        self.assertEqual(actual_year_month, expected_year_month)
+
+        # Verify sequence part starts with 'P'
+        self.assertTrue(parts[2].startswith('P'))
+        self.assertTrue(parts[2][1:].isdigit())
+
+    def test_save_and_retrieve_estimate(self):
+        """Test saving and retrieving an estimate."""
+        # Arrange
+        client_id = self.create_test_client()
+        service_id = self.create_test_service()
+
+        issue_date = datetime.now()
+        estimate_number = generate_estimate_number(issue_date)
+
+        # Act
+        result = save_estimate(
+            client_id=client_id,
+            service_id=service_id,
+            quantity=2,
+            issue_date_str=issue_date.strftime('%Y-%m-%d'),
+            valid_until_date_str='2025-07-01',
+            irpf_rate_decimal=0.15,
+            notes='Test estimate notes',
+            terms='Test estimate terms',
+            estimate_number_override=estimate_number
+        )
+
+        # Assert
+        self.assertEqual(result, estimate_number)
+
+        # Retrieve and verify
+        retrieved_estimate = get_estimate_by_number(estimate_number)
+        self.assertIsNotNone(retrieved_estimate)
+        self.assertEqual(retrieved_estimate['estimate_number'], estimate_number)
+        self.assertEqual(retrieved_estimate['client_id'], client_id)
+        self.assertEqual(retrieved_estimate['service_id'], service_id)
+        self.assertEqual(retrieved_estimate['quantity'], 2)
+        self.assertEqual(retrieved_estimate['notes'], 'Test estimate notes')
+        self.assertEqual(retrieved_estimate['terms'], 'Test estimate terms')
+        self.assertEqual(retrieved_estimate['status'], 'Draft')
 
 
 if __name__ == '__main__':

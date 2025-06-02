@@ -193,7 +193,7 @@
 <!-- Year selector -->
 <div class="year-selector mb-3">
     <label for="year-select">Select Year:</label>
-    <select id="year-select" class="form-select d-inline-block w-auto" onchange="window.location.href='{{ url_for(\\'estimates\\') }}?year=' + this.value">
+    <select id="year-select" class="form-select d-inline-block w-auto" onchange="window.location.href='{{ url_for("estimates") }}?year=' + this.value">
         {% for year in available_years %}
         <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
         {% endfor %}
@@ -300,7 +300,7 @@
                                 <a href="{{ url_for('view_estimate', estimate_number=estimate.estimate_number) }}" class="action-btn action-btn-view">
                                     <i class="fas fa-eye"></i> View
                                 </a>
-                                <button class="action-btn action-btn-delete" onclick="confirmDelete('{{ url_for(\\'delete_estimate\\', estimate_number=estimate.estimate_number) }}', 'estimate')">
+                                <button class="action-btn action-btn-delete" onclick="confirmDelete('{{ url_for("delete_estimate", estimate_number=estimate.estimate_number) }}', 'estimate')">
                                     <i class="fas fa-trash"></i> Delete
                                 </button>
                             </div>
