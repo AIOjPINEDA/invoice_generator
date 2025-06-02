@@ -4,18 +4,14 @@ Estimate-related database operations for the Invoice Generator application.
 import sqlite3 # Added import for sqlite3.Error
 from datetime import datetime
 from src.models.db import get_db_connection
-from src.utils import calculate_financials # Import the new utility function
+from src.utils import calculate_financials, load_config # Import the new utility function
 
-# TODO: Make IVA rate configurable, potentially in config.json. 
-# For now, it's being used from here, but ideally, it should be passed or fetched from config.
-DEFAULT_IVA_RATE = 0.21
-
-def generate_estimate_number(issue_date_obj): # Removed db_path
+def generate_estimate_number(issue_date_obj):
     """Generate a sequential estimate number (e.g., YYYY-MM-PXXX)."""
     # issue_date_obj should be a datetime object
     year_month_prefix = issue_date_obj.strftime("%Y-%m") # Format YYYY-MM
 
-    with get_db_connection() as conn: # Call without db_path
+    with get_db_connection() as conn:
         cursor = conn.cursor()
         # Count estimates from this year and month
         query = f"SELECT COUNT(*) FROM estimates WHERE estimate_number LIKE '{year_month_prefix}-P%'"
@@ -26,13 +22,13 @@ def generate_estimate_number(issue_date_obj): # Removed db_path
 
 # TODO: Adapt to handle multiple services per estimate.
 # This would require a separate estimate_items table.
-def save_estimate(client_id, service_id, quantity, issue_date_str, valid_until_date_str, irpf_rate_decimal, notes, terms, estimate_number_override=None): # Removed db_path, added estimate_number_override
+def save_estimate(client_id, service_id, quantity, issue_date_str, valid_until_date_str, irpf_rate_decimal, notes, terms, estimate_number_override=None):
     """Save a new estimate to the database, performing calculations."""
     
     estimate_number = estimate_number_override if estimate_number_override else generate_estimate_number(datetime.strptime(issue_date_str, "%Y-%m-%d"))
 
     try:
-        with get_db_connection() as conn: # Call without db_path
+        with get_db_connection() as conn:
             cursor = conn.cursor()
 
             # 1. Fetch client currency
@@ -53,9 +49,10 @@ def save_estimate(client_id, service_id, quantity, issue_date_str, valid_until_d
             subtotal = float(quantity) * float(unit_price)
             
             # 4. Use calculate_financials for tax and total calculation
-            # Using DEFAULT_IVA_RATE defined in this file.
-            # irpf_rate_decimal is passed directly to the function.
-            financials = calculate_financials(subtotal, DEFAULT_IVA_RATE, float(irpf_rate_decimal))
+            # Get IVA rate from configuration for consistency
+            config = load_config()
+            default_iva = config.get('tax_rates', {}).get('default_iva', 0.21)
+            financials = calculate_financials(subtotal, default_iva, float(irpf_rate_decimal))
             
             # 5. Insert into estimates table
             sql = '''INSERT INTO estimates (
@@ -86,9 +83,9 @@ def save_estimate(client_id, service_id, quantity, issue_date_str, valid_until_d
         print(f"An unexpected error occurred in save_estimate: {e}")
         raise
 
-def get_estimate_by_number(estimate_number): # Removed db_path
+def get_estimate_by_number(estimate_number):
     """Get estimate details by its number, including client and service info."""
-    with get_db_connection() as conn: # Call without db_path
+    with get_db_connection() as conn:
         cursor = conn.cursor()
         # Joined with clients and services to get comprehensive details
         # Ensure column names match the actual schema in src/models.py
@@ -127,9 +124,9 @@ def get_estimate_by_number(estimate_number): # Removed db_path
             return estimate_data
         return None
 
-def get_recent_estimates(limit=5): # Removed db_path
+def get_recent_estimates(limit=5):
     """Get recent estimates with client and service information."""
-    with get_db_connection() as conn: # Call without db_path
+    with get_db_connection() as conn:
         cursor = conn.cursor()
         # Corrected JOIN: services.description, services.price, services.unit_type
         # Corrected SELECT for estimate fields
@@ -153,10 +150,10 @@ def get_recent_estimates(limit=5): # Removed db_path
                 estimates_list.append(dict(zip(columns, row_data)))
         return estimates_list
 
-def delete_estimate(estimate_number): # Removed db_path
+def delete_estimate(estimate_number):
     """Delete an estimate from the database by its number."""
     try:
-        with get_db_connection() as conn: # Call without db_path
+        with get_db_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("DELETE FROM estimates WHERE estimate_number = ?", (estimate_number,))
             conn.commit()

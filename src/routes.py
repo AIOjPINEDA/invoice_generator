@@ -1,7 +1,7 @@
 """
 Route definitions for the Invoice Generator application.
 """
-from flask import render_template, request, jsonify, redirect, flash, url_for # Added url_for
+from flask import render_template, request, jsonify, redirect, flash, url_for
 from datetime import datetime
 from src import models
 from src import utils
@@ -162,7 +162,7 @@ def register_routes(app):
         service_id = request.form.get('service_id')
         quantity = request.form.get('quantity', 1)
         
-        estimate_date_str = request.form.get('issue_date')  # Changed from 'estimate_date' to 'issue_date'
+        estimate_date_str = request.form.get('issue_date')
         valid_until_date_str = request.form.get('valid_until_date')
         
         # IRPF rate is expected as a string like "0.07", convert to float
@@ -724,37 +724,3 @@ def register_routes(app):
                 flash("Cannot delete this service because it has invoices associated with it. Delete the invoices first.", "error")
 
         return redirect('/manage_services')
-
-    @app.route('/get_client/<int:client_id>')
-    def get_client_json(client_id):
-        """Get client details as JSON for AJAX requests"""
-        client = models.get_client(client_id)
-
-        if not client:
-            return jsonify({'error': 'Client not found'}), 404
-
-        return jsonify({
-            'id': client[0],
-            'name': client[1],
-            'tax_id': client[2],
-            'address': client[3],
-            'country': client[4],
-            'email': client[5],
-            'currency_code': client[6] if len(client) > 6 else 'EUR',
-            'currency_symbol': client[7] if len(client) > 7 else '€'
-        })
-
-    @app.route('/get_service/<int:service_id>')
-    def get_service_json(service_id):
-        """Get service details as JSON for AJAX requests"""
-        service = models.get_service(service_id)
-
-        if not service:
-            return jsonify({'error': 'Service not found'}), 404
-
-        return jsonify({
-            'id': service[0],
-            'description': service[1],
-            'unit_price': service[2],
-            'unit_type': service[3]
-        })
