@@ -1,0 +1,61 @@
+/* Document Type Selector */
+.document-type-selector {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.document-type-btn {
+    flex: 1;
+    padding: 15px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.3s ease;
+    background-color: white;
+}
+
+.document-type-btn i {
+    font-size: 24px;
+    margin-bottom: 8px;
+    color: var(--text-muted);
+}
+
+.document-type-btn.active {
+    border-color: var(--accent-color);
+    background-color: var(--accent-color);
+    color: white;
+}
+
+.document-type-btn.active i {
+    color: white;
+}
+
+.document-type-btn:hover:not(.active) {
+    border-color: var(--accent-color);
+    background-color: var(--light-gray);
+}
+
+/* Validity Info */
+.validity-info {
+    margin: 30px 0;
+    padding: 20px;
+    background-color: var(--light-gray);
+    border-radius: 5px;
+    border-left: 4px solid var(--warning-color);
+}
+
+.validity-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: var(--warning-color);
+}
+
+.validity-date {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+/* ... existing styles ... */ 

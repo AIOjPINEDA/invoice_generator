@@ -36,6 +36,11 @@ def load_config():
         "preferences": {
             "last_client_id": None,
             "last_service_id": None
+        },
+        # Added default tax rates here for central management
+        "tax_rates": {
+            "default_iva": 0.21,
+            "default_irpf": 0.15 
         }
     }
 
@@ -49,18 +54,43 @@ def save_config(config):
         print(f"Error saving config: {e}")
         return False
 
-def calculate_invoice_totals(service_price, quantity, apply_iva=True, apply_irpf=True):
-    """Calculate invoice totals including taxes"""
-    subtotal = service_price * quantity
-    iva = subtotal * 0.21 if apply_iva else 0
-    irpf = subtotal * 0.15 if apply_irpf else 0
-    total = subtotal + iva - irpf
+def calculate_financials(subtotal, iva_rate, irpf_rate):
+    """
+    Calculates IVA amount, IRPF amount, and total based on subtotal and tax rates.
 
+    Args:
+        subtotal (float): The base amount before taxes.
+        iva_rate (float): The IVA rate (e.g., 0.21 for 21%).
+        irpf_rate (float): The IRPF rate (e.g., 0.15 for 15%).
+
+    Returns:
+        dict: A dictionary containing 'subtotal', 'iva_amount', 
+              'irpf_amount', and 'total'.
+    """
+    iva_amount = subtotal * iva_rate
+    irpf_amount = subtotal * irpf_rate
+    total = subtotal + iva_amount - irpf_amount
     return {
-        'subtotal': subtotal,
-        'iva': iva,
-        'irpf': irpf,
-        'total': total
+        'subtotal': round(subtotal, 2),
+        'iva_amount': round(iva_amount, 2),
+        'irpf_amount': round(irpf_amount, 2),
+        'total': round(total, 2)
     }
+
+def calculate_invoice_totals(service_price, quantity, apply_iva=True, apply_irpf=True):
+    """Calculate invoice totals including taxes.
+    This function might be refactored or deprecated if invoice creation
+    logic is updated to use calculate_financials more directly with rates from config.
+    """
+    config = load_config()
+    default_iva = config.get('tax_rates', {}).get('default_iva', 0.21)
+    default_irpf = config.get('tax_rates', {}).get('default_irpf', 0.15)
+
+    subtotal = service_price * quantity
+    
+    current_iva_rate = default_iva if apply_iva else 0
+    current_irpf_rate = default_irpf if apply_irpf else 0
+    
+    return calculate_financials(subtotal, current_iva_rate, current_irpf_rate)
 
 

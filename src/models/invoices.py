@@ -1,5 +1,10 @@
 """
 Invoice-related database operations for the Invoice Generator application.
+
+Recent updates:
+- Fixed save_invoice to calculate and store all financial fields
+- Updated get_recent_invoices to return all necessary fields for templates
+- Added proper currency handling and tax calculations
 """
 from datetime import datetime
 from src.models.db import get_db_connection
@@ -41,13 +46,31 @@ def generate_invoice_number(client_id):
 
 def save_invoice(client_id, service_id, quantity, date, invoice_number, apply_iva=True, apply_irpf=True):
     """Save an invoice to the database with tax application preferences"""
+    from src import utils
+
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
+        # Get service price to calculate totals
+        cursor.execute('SELECT unit_price FROM services WHERE id = ?', (service_id,))
+        service_price = cursor.fetchone()[0]
+
+        # Get client currency info
+        cursor.execute('SELECT currency_code, currency_symbol FROM clients WHERE id = ?', (client_id,))
+        client_currency = cursor.fetchone()
+        currency_code = client_currency[0] if client_currency and client_currency[0] else 'EUR'
+        currency_symbol = client_currency[1] if client_currency and client_currency[1] else '€'
+
+        # Calculate totals using the utils function
+        totals = utils.calculate_invoice_totals(service_price, quantity, apply_iva, apply_irpf)
+
         cursor.execute('''
-        INSERT INTO invoices (client_id, service_id, quantity, date, invoice_number, apply_iva, apply_irpf)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (client_id, service_id, quantity, date, invoice_number, apply_iva, apply_irpf))
+        INSERT INTO invoices (client_id, service_id, quantity, date, invoice_number, apply_iva, apply_irpf,
+                             subtotal, iva_amount, irpf_amount, total_amount, currency_code, currency_symbol)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (client_id, service_id, quantity, date, invoice_number, apply_iva, apply_irpf,
+              totals['subtotal'], totals['iva_amount'], totals['irpf_amount'], totals['total'],
+              currency_code, currency_symbol))
 
         invoice_id = cursor.lastrowid
         conn.commit()
@@ -59,11 +82,16 @@ def get_recent_invoices(limit=5):
     with get_db_connection() as conn:
         cursor = conn.cursor()
 
-        # Common invoice query fields
+        # Common invoice query fields - updated to include all necessary fields
         invoice_query = '''
         SELECT i.id, i.invoice_number, i.date, c.name, s.description, i.quantity,
-               s.unit_price * i.quantity AS subtotal,
-               i.apply_iva, i.apply_irpf, i.client_id, c.currency_symbol
+               COALESCE(i.subtotal, s.unit_price * i.quantity) AS subtotal,
+               i.apply_iva, i.apply_irpf, i.client_id,
+               COALESCE(c.currency_symbol, '€') AS currency_symbol,
+               COALESCE(i.iva_amount, 0) AS iva_amount,
+               COALESCE(i.irpf_amount, 0) AS irpf_amount,
+               COALESCE(i.total_amount, s.unit_price * i.quantity) AS total_amount,
+               COALESCE(i.currency_code, 'EUR') AS currency_code
         FROM invoices i
         JOIN clients c ON i.client_id = c.id
         JOIN services s ON i.service_id = s.id
@@ -177,8 +205,13 @@ def get_invoices_by_year(year):
         # Extract year from date field (format: DD/MM/YYYY)
         cursor.execute('''
         SELECT i.id, i.invoice_number, i.date, c.name, s.description, i.quantity,
-               s.unit_price * i.quantity AS subtotal,
-               i.apply_iva, i.apply_irpf, i.client_id, c.currency_symbol
+               COALESCE(i.subtotal, s.unit_price * i.quantity) AS subtotal,
+               i.apply_iva, i.apply_irpf, i.client_id,
+               COALESCE(c.currency_symbol, '€') AS currency_symbol,
+               COALESCE(i.iva_amount, 0) AS iva_amount,
+               COALESCE(i.irpf_amount, 0) AS irpf_amount,
+               COALESCE(i.total_amount, s.unit_price * i.quantity) AS total_amount,
+               COALESCE(i.currency_code, 'EUR') AS currency_code
         FROM invoices i
         JOIN clients c ON i.client_id = c.id
         JOIN services s ON i.service_id = s.id

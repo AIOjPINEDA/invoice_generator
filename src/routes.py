@@ -1,11 +1,12 @@
 """
 Route definitions for the Invoice Generator application.
 """
-from flask import render_template, request, jsonify, redirect, flash
+from flask import render_template, request, jsonify, redirect, flash, url_for # Added url_for
 from datetime import datetime
 from src import models
 from src import utils
 from src.finance import finance_routes
+from src.models import estimates as estimate_models # Added import for estimates
 
 def register_routes(app):
     """Register all application routes"""
@@ -25,7 +26,8 @@ def register_routes(app):
         last_service_id = config.get('preferences', {}).get('last_service_id')
 
         # Get recent invoices (now includes currency_symbol at index 10)
-        recent_invoices = models.get_recent_invoices(10)
+        recent_invoices = models.get_recent_invoices(5) # Limit to 5 for main page
+        recent_estimates = estimate_models.get_recent_estimates(5) # Limit to 5 for main page
 
         # Get current page for navbar highlighting
         current_page = 'home'
@@ -39,6 +41,7 @@ def register_routes(app):
                               last_client_id=last_client_id,
                               last_service_id=last_service_id,
                               recent_invoices=recent_invoices,
+                              recent_estimates=recent_estimates, # Pass recent estimates
                               currency_symbol=config.get('currency', {}).get('symbol', '€'),
                               current_page=current_page,
                               today_date=today_date)
@@ -144,13 +147,103 @@ def register_routes(app):
                                quantity=quantity,
                                date=formatted_date,
                                invoice_number=invoice_number,
-                               subtotal=totals['subtotal'],
-                               iva=totals['iva'],
-                               irpf=totals['irpf'],
-                               total=totals['total'],
+                               subtotal=totals.get('subtotal', 0),
+                               iva=totals.get('iva_amount', 0),
+                               irpf=totals.get('irpf_amount', 0),
+                               total=totals.get('total', 0),
                                currency_code=currency_code,
                                currency_symbol=currency_symbol,
                                issuer=issuer)
+
+    @app.route('/generate_estimate', methods=['POST'])
+    def generate_estimate():
+        """Generate estimate based on form data"""
+        client_id = request.form.get('client_id')
+        service_id = request.form.get('service_id')
+        quantity = request.form.get('quantity', 1)
+        
+        estimate_date_str = request.form.get('issue_date')  # Changed from 'estimate_date' to 'issue_date'
+        valid_until_date_str = request.form.get('valid_until_date')
+        
+        # IRPF rate is expected as a string like "0.07", convert to float
+        irpf_rate_str = request.form.get('irpf_rate')
+        try:
+            irpf_rate = float(irpf_rate_str) if irpf_rate_str else 0.0
+        except ValueError:
+            flash('Invalid IRPF rate format.', 'error')
+            return redirect(request.referrer or '/')
+
+        notes = request.form.get('notes', '')
+        terms = request.form.get('terms', '')
+
+        if not client_id or not service_id or not quantity or not estimate_date_str:
+            flash('Missing required fields for estimate generation.', 'error')
+            return redirect(request.referrer or '/')
+
+        try:
+            quantity = int(quantity)
+        except ValueError:
+            flash('Invalid quantity.', 'error')
+            return redirect(request.referrer or '/')
+
+        client = models.get_client(int(client_id))
+        service = models.get_service(int(service_id))
+
+        if not client or not service:
+            flash('Invalid client or service selected.', 'error')
+            return redirect(request.referrer or '/')
+
+        config = utils.load_config()
+        # Save last selections to config
+        if 'preferences' not in config:
+            config['preferences'] = {}
+        config['preferences']['last_client_id'] = int(client_id)
+        config['preferences']['last_service_id'] = int(service_id)
+        utils.save_config(config)
+
+        # Generate estimate number with proper date object
+        from datetime import datetime
+        issue_date_obj = datetime.strptime(estimate_date_str, '%Y-%m-%d')
+        estimate_number = estimate_models.generate_estimate_number(issue_date_obj)
+
+        # save_estimate handles financial calculations internally
+        estimate_id = estimate_models.save_estimate(
+            client_id=int(client_id),
+            service_id=int(service_id),
+            quantity=quantity,
+            issue_date_str=estimate_date_str,  # Corrected parameter name
+            valid_until_date_str=valid_until_date_str,
+            irpf_rate_decimal=irpf_rate,  # Corrected parameter name
+            notes=notes,
+            terms=terms,
+            estimate_number_override=estimate_number # Pass the generated number
+        )
+
+        if not estimate_id:
+            flash('Failed to save estimate.', 'error')
+            return redirect(request.referrer or '/')
+
+        # Fetch the full estimate details to render the page
+        # This ensures all calculated fields are fresh from the DB
+        estimate_data = estimate_models.get_estimate_by_number(estimate_number)
+        if not estimate_data:
+            flash('Failed to retrieve estimate after saving.', 'error')
+            return redirect(request.referrer or '/')
+            
+        issuer = config.get('issuer', {})
+        
+        # Determine currency symbol from client or default
+        currency_symbol = client[7] if client and len(client) > 7 and client[7] else config.get('currency', {}).get('symbol', '€')
+
+
+        # The 'estimate_detail.html' template will be created in the next step
+        return render_template('estimate_detail.html', 
+                               estimate_data=estimate_data,
+                               client=models.get_client(estimate_data['client_id']), # Fetch full client for template
+                               service=models.get_service(estimate_data['service_id']), # Fetch full service for template
+                               issuer=issuer,
+                               currency_symbol=currency_symbol,
+                               current_page='estimates') # For navbar highlighting
 
     @app.route('/view_invoice/<invoice_number>')
     def view_invoice(invoice_number):
@@ -203,13 +296,55 @@ def register_routes(app):
                               quantity=quantity,
                               date=invoice_data['date'],
                               invoice_number=invoice_data['invoice_number'],
-                              subtotal=totals['subtotal'],
-                              iva=totals['iva'],
-                              irpf=totals['irpf'],
-                              total=totals['total'],
+                              subtotal=totals.get('subtotal', 0),
+                              iva=totals.get('iva_amount', 0),
+                              irpf=totals.get('irpf_amount', 0),
+                              total=totals.get('total', 0),
                               currency_code=currency_code,
                               currency_symbol=currency_symbol,
                               issuer=issuer)
+
+    @app.route('/estimate/<estimate_number>')
+    def view_estimate(estimate_number):
+        """View a specific estimate by its number"""
+        estimate_data = estimate_models.get_estimate_by_number(estimate_number)
+
+        if not estimate_data:
+            flash(f"Estimate {estimate_number} not found.", "error")
+            return redirect(url_for('index')) # Or a dedicated estimates list page
+
+        client = models.get_client(estimate_data['client_id'])
+        service = models.get_service(estimate_data['service_id'])
+        
+        config = utils.load_config()
+        issuer = config.get('issuer', {})
+        
+        # Determine currency symbol from client or default
+        currency_symbol = client[7] if client and len(client) > 7 and client[7] else config.get('currency', {}).get('symbol', '€')
+
+        # 'estimate_detail.html' will be used here as well
+        return render_template('estimate_detail.html',
+                               estimate_data=estimate_data,
+                               client=client,
+                               service=service,
+                               issuer=issuer,
+                               currency_symbol=currency_symbol,
+                               current_page='estimates')
+
+
+    @app.route('/estimates')
+    def list_estimates():
+        """List all estimates"""
+        # For now, using get_recent_estimates. Later, a dedicated get_all_estimates might be needed.
+        estimates_list = estimate_models.get_recent_estimates(limit=100) # Get up to 100 recent estimates
+        config = utils.load_config()
+        default_currency_symbol = config.get('currency', {}).get('symbol', '€')
+        
+        # 'all_estimates.html' will be created in a future step
+        return render_template('all_estimates.html', 
+                               estimates=estimates_list, 
+                               default_currency_symbol=default_currency_symbol,
+                               current_page='estimates')
 
     @app.route('/delete_invoice/<invoice_number>')
     def delete_invoice(invoice_number):
@@ -220,6 +355,19 @@ def register_routes(app):
             return redirect('/')
         else:
             return "Error deleting invoice", 400
+
+    @app.route('/delete_estimate/<estimate_number>')
+    def delete_estimate(estimate_number):
+        """Delete a specific estimate by its number"""
+        success = estimate_models.delete_estimate(estimate_number)
+
+        if success:
+            flash(f'Estimate {estimate_number} deleted successfully.', 'success')
+        else:
+            flash(f'Error deleting estimate {estimate_number}.', 'error')
+        
+        # Redirect to the main page or a dedicated estimates list page
+        return redirect(request.referrer or url_for('index'))
 
     # API routes for charts
     @app.route('/api/invoice_stats')

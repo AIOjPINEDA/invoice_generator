@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Initialize components
   initializeSelectionButtons();
+  initializeDocumentTypeSwitcher(); // Added this call
 
   // Add entrance animations to bento items
   animateBentoItems();
@@ -24,6 +25,68 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize sortable tables
   initializeSortableTables();
 });
+
+/**
+ * Initialize document type switcher
+ */
+function initializeDocumentTypeSwitcher() {
+    const docTypeRadios = document.querySelectorAll('input[name="document_type"]');
+    const form = document.getElementById('document-form');
+    const formTitle = document.getElementById('form-title');
+    const generateButton = document.getElementById('generate-button');
+    const estimateFields = document.querySelectorAll('.estimate-fields');
+    const invoiceTaxOptions = document.getElementById('tax-options-invoice');
+    const issueDateLabel = document.querySelector('label[for="issue_date"]');
+    const recentDocumentsTitle = document.getElementById('recent-documents-title');
+    // const documentsTable = document.getElementById('documents-table'); // To update table headers if needed
+    // const documentsTableBody = document.getElementById('documents-table-body'); // To update table content
+
+    docTypeRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            const selectedType = this.value;
+            
+            // Update form action
+            form.action = (selectedType === 'estimate') ? '/generate_estimate' : '/generate_invoice';
+            
+            // Update titles and button text
+            if (selectedType === 'estimate') {
+                formTitle.textContent = 'Generate New Estimate';
+                generateButton.textContent = 'Generate Estimate';
+                issueDateLabel.textContent = 'Estimate Date';
+                recentDocumentsTitle.textContent = 'Recent Estimates'; // Or "Recent Documents"
+                // Potentially fetch and display recent estimates here
+            } else {
+                formTitle.textContent = 'Generate New Invoice';
+                generateButton.textContent = 'Generate Invoice';
+                issueDateLabel.textContent = 'Invoice Date';
+                recentDocumentsTitle.textContent = 'Recent Invoices'; // Or "Recent Documents"
+                // Potentially fetch and display recent invoices here
+            }
+
+            // Toggle visibility of estimate-specific fields and invoice tax options
+            estimateFields.forEach(field => {
+                field.style.display = (selectedType === 'estimate') ? 'block' : 'none';
+            });
+            if (invoiceTaxOptions) {
+                invoiceTaxOptions.style.display = (selectedType === 'invoice') ? 'block' : 'none';
+            }
+
+            // Update selected label style
+            document.getElementById('doc-type-invoice-label').classList.toggle('selected', selectedType === 'invoice');
+            document.getElementById('doc-type-estimate-label').classList.toggle('selected', selectedType === 'estimate');
+        });
+    });
+
+    // Initial setup based on default checked (invoice)
+    if (invoiceTaxOptions) {
+        invoiceTaxOptions.style.display = 'block'; 
+    }
+    estimateFields.forEach(field => {
+        field.style.display = 'none';
+    });
+    document.getElementById('doc-type-invoice-label').classList.add('selected');
+}
+
 
 /**
  * Initialize selection buttons for clients and services
@@ -168,7 +231,9 @@ function selectService(buttonElement, serviceId) {
 function fetchClientDetails(clientId) {
   if (!clientId) {
     const detailsDiv = document.getElementById('client-details');
-    detailsDiv.style.display = 'none';
+    if (detailsDiv) { // Check if element exists
+        detailsDiv.style.display = 'none';
+    }
     return;
   }
 
@@ -199,7 +264,9 @@ function fetchClientDetails(clientId) {
 function fetchServiceDetails(serviceId) {
   if (!serviceId) {
     const detailsDiv = document.getElementById('service-details');
-    detailsDiv.style.display = 'none';
+    if (detailsDiv) { // Check if element exists
+        detailsDiv.style.display = 'none';
+    }
     return;
   }
 
@@ -246,9 +313,9 @@ function animateBentoItems() {
 /**
  * Confirm invoice deletion
  */
-function confirmDelete(invoiceNumber) {
-  if (confirm('Are you sure you want to delete invoice ' + invoiceNumber + '? This action cannot be undone.')) {
-    window.location.href = '/delete_invoice/' + invoiceNumber;
+function confirmDelete(docType, docNumber) { // Added docType parameter
+  if (confirm('Are you sure you want to delete ' + docType + ' ' + docNumber + '? This action cannot be undone.')) {
+    window.location.href = '/delete_' + docType + '/' + docNumber;
   }
 }
 

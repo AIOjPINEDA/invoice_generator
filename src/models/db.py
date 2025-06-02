@@ -9,9 +9,10 @@ from contextlib import contextmanager
 DB_FILE = 'db/invoices.db'
 
 @contextmanager
-def get_db_connection():
+def get_db_connection(db_path=None):  # Add db_path parameter with a default
     """Context manager for database connections to ensure proper closing"""
-    conn = sqlite3.connect(DB_FILE)
+    path_to_connect = db_path if db_path else DB_FILE  # Use db_path if provided
+    conn = sqlite3.connect(path_to_connect)
     try:
         yield conn
     finally:
@@ -24,6 +25,8 @@ def init_db():
 
     # Flag to check if we need to update existing clients with currency info
     need_currency_update = False
+    need_invoice_update = False
+
     if db_exists:
         # Check if clients table already has currency columns
         with get_db_connection() as conn:
@@ -33,6 +36,16 @@ def init_db():
             column_names = [column[1] for column in columns]
             if 'currency_code' not in column_names or 'currency_symbol' not in column_names:
                 need_currency_update = True
+
+            # Check if invoices table has all required columns
+            cursor.execute("PRAGMA table_info(invoices)")
+            invoice_columns = cursor.fetchall()
+            invoice_column_names = [column[1] for column in invoice_columns]
+            required_invoice_columns = ['subtotal', 'iva_amount', 'irpf_amount', 'total_amount', 'currency_code', 'currency_symbol']
+            for col in required_invoice_columns:
+                if col not in invoice_column_names:
+                    need_invoice_update = True
+                    break
 
     with get_db_connection() as conn:
         cursor = conn.cursor()
@@ -70,6 +83,35 @@ def init_db():
             invoice_number TEXT NOT NULL,
             apply_iva BOOLEAN DEFAULT 1,
             apply_irpf BOOLEAN DEFAULT 1,
+            subtotal REAL,
+            iva_amount REAL,
+            irpf_amount REAL,
+            total_amount REAL,
+            currency_code TEXT,
+            currency_symbol TEXT,
+            FOREIGN KEY (client_id) REFERENCES clients (id),
+            FOREIGN KEY (service_id) REFERENCES services (id)
+        )
+        ''')
+
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS estimates (
+            id INTEGER PRIMARY KEY,
+            estimate_number TEXT NOT NULL,
+            client_id INTEGER NOT NULL,
+            service_id INTEGER NOT NULL,
+            quantity REAL NOT NULL,
+            issue_date TEXT NOT NULL,
+            valid_until_date TEXT NOT NULL,
+            subtotal REAL NOT NULL,
+            iva_amount REAL NOT NULL,
+            irpf_rate REAL NOT NULL,
+            irpf_amount REAL NOT NULL,
+            total REAL NOT NULL,
+            currency TEXT NOT NULL,
+            status TEXT NOT NULL,
+            notes TEXT,
+            terms TEXT,
             FOREIGN KEY (client_id) REFERENCES clients (id),
             FOREIGN KEY (service_id) REFERENCES services (id)
         )
@@ -127,6 +169,30 @@ def init_db():
                 print("Currency information updated successfully")
             except Exception as e:
                 print(f"Error updating currency information: {e}")
+
+        # Update invoices table structure if needed
+        if need_invoice_update:
+            print("Updating invoices table structure...")
+            # Add missing columns to invoices table
+            required_invoice_columns = [
+                ('subtotal', 'REAL'),
+                ('iva_amount', 'REAL'),
+                ('irpf_amount', 'REAL'),
+                ('total_amount', 'REAL'),
+                ('currency_code', 'TEXT'),
+                ('currency_symbol', 'TEXT')
+            ]
+
+            for col_name, col_type in required_invoice_columns:
+                try:
+                    cursor.execute(f'ALTER TABLE invoices ADD COLUMN {col_name} {col_type}')
+                    print(f"Added column {col_name} to invoices table.")
+                except Exception as e:
+                    # Column might already exist, ignore the error
+                    pass
+
+            conn.commit()
+            print("Invoices table structure updated successfully.")
 
     print(f"Database initialized at {DB_FILE}")
 

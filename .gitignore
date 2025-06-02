@@ -1,44 +1,65 @@
-# Entornos virtuales
-venv/
-.venv/
-env/
-ENV/
-
-# Archivos de caché de Python
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
-.pytest_cache/
-
-# Archivos de distribución
-dist/
+*.so
+.Python
 build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
 *.egg-info/
+.installed.cfg
+*.egg
 
-# Archivos de base de datos SQLite
-# Excluimos todas las bases de datos para que los cambios locales no se suban al repositorio
-db/*.db
-db/*.sqlite
-db/*.sqlite3
-# Excepto la plantilla vacía
-!db/template.db
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
 
-# Archivos de log
-*.log
-
-# Archivos del sistema operativo
-.DS_Store
-Thumbs.db
-
-# Archivos de configuración de IDE
-.idea/
+# IDEs
 .vscode/
+.idea/
 *.swp
 *.swo
-
-# Archivos de respaldo
 *~
-*.bak
 
-# Directorio de backup
-invoice_generator_backup/
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+*.log.*
+logs/
+
+# Database files (keep only the main one)
+invoices.db
+db/invoices.db
+db/invoices_personal.db
+
+# Data files
+data/*.xlsx
+data/*.csv
+data/raw_expenses/
+
+# Temporary files
+*.tmp
+*.temp

@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 
-{% block title %}Invoice Generator 2025{% endblock %}
+{% block title %}Invoice & Estimate Generator 2025{% endblock %}
 
-{% block extra_styles %}
+{% block extra_css %}
+<style>
 /* Bento Box Layout */
 .bento-grid {
     display: grid;
@@ -321,6 +322,45 @@
     color: white;
 }
 
+/* Styles for Document Type Switcher */
+.document-type-switcher {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding: 0.5rem;
+    background-color: var(--input-background);
+    border-radius: var(--border-radius);
+}
+
+.doc-type-label {
+    padding: 0.75rem 1.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.doc-type-label:hover {
+    border-color: var(--accent-color);
+}
+
+.doc-type-label.selected {
+    background-color: var(--accent-color);
+    color: white;
+    border-color: var(--accent-color);
+}
+
+.doc-type-label input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+}
+
+/* Styles for estimate specific fields (initially hidden) */
+.estimate-fields {
+    display: none; /* Hidden by default, shown by JS */
+}
+
 /* Responsive Adjustments */
 @media (max-width: 768px) {
     .selection-container {
@@ -348,16 +388,30 @@
 .bento-item:nth-child(3) { transition-delay: 0.3s; }
 .bento-item:nth-child(4) { transition-delay: 0.4s; }
 .bento-item:nth-child(5) { transition-delay: 0.5s; }
+</style>
 {% endblock %}
 
 {% block content %}
 <div class="bento-grid">
     <div class="bento-item" style="grid-column: span 8;">
         <div class="card-header">
-            <h2 class="card-title">Generate New Invoice</h2>
+            <h2 class="card-title" id="form-title">Generate New Document</h2>
         </div>
         <div class="card-body">
-            <form action="/generate_invoice" method="post">
+            <form id="document-form" action="/generate_invoice" method="post">
+                <!-- Document Type Switcher -->
+                <div class="form-group">
+                    <label class="form-label">Document Type</label>
+                    <div class="document-type-switcher">
+                        <label class="doc-type-label selected" id="doc-type-invoice-label">
+                            <input type="radio" name="document_type" value="invoice" checked> Invoice
+                        </label>
+                        <label class="doc-type-label" id="doc-type-estimate-label">
+                            <input type="radio" name="document_type" value="estimate"> Estimate
+                        </label>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label class="form-label">Select Client</label>
                     <div class="selection-container" id="client-selection">
@@ -400,104 +454,166 @@
                         <input type="number" class="form-control" id="quantity" name="quantity" value="1" min="1" step="1">
                     </div>
                     <div class="form-group form-group-half">
-                        <label class="form-label" for="invoice_date">Invoice Date</label>
-                        <input type="date" class="form-control" id="invoice_date" name="invoice_date" value="{{ today_date }}">
+                        <label class="form-label" for="issue_date">Issue Date</label> <!-- Changed label -->
+                        <input type="date" class="form-control" id="issue_date" name="issue_date" value="{{ today_date }}">
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">Tax Options</label>
+                <!-- Estimate Specific Fields -->
+                <div class="estimate-fields">
+                    <div class="form-row">
+                        <div class="form-group form-group-half">
+                            <label class="form-label" for="valid_until_date">Valid Until</label>
+                            <input type="date" class="form-control" id="valid_until_date" name="valid_until_date">
+                        </div>
+                        <div class="form-group form-group-half">
+                            <label class="form-label" for="irpf_rate">IRPF Rate (%)</label>
+                            <select class="form-control" id="irpf_rate" name="irpf_rate">
+                                <option value="0">0%</option>
+                                <option value="0.07">7%</option>
+                                <option value="0.15" selected>15%</option>
+                                <option value="0.21">21%</option>
+                                <!-- Add other common rates or allow custom input if needed -->
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="estimate_notes">Notes</label>
+                        <textarea class="form-control" id="estimate_notes" name="estimate_notes" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="estimate_terms">Terms</label>
+                        <textarea class="form-control" id="estimate_terms" name="estimate_terms" rows="3"></textarea>
+                    </div>
+                </div>
+
+                <div class="form-group" id="tax-options-invoice"> <!-- ID for invoice tax options -->
+                    <label class="form-label">Tax Options (Invoice)</label>
                     <div class="checkbox-group">
                         <label class="custom-checkbox">
-                            <input type="checkbox" name="apply_iva" value="1">
+                            <input type="checkbox" name="apply_iva" value="1" checked> <!-- Checked by default -->
                             <span class="checkmark"></span>
                             Apply VAT (21%)
                         </label>
-                        <label class="custom-checkbox">
-                            <input type="checkbox" name="apply_irpf" value="1">
+                        <label class="custom-checkbox" id="irpf-checkbox-invoice">
+                            <input type="checkbox" name="apply_irpf" value="1" checked> <!-- Checked by default -->
                             <span class="checkmark"></span>
                             Apply IRPF (15%)
                         </label>
                     </div>
                 </div>
+                
+                <div class="form-group estimate-fields"> <!-- VAT for estimates, IRPF is handled by dropdown -->
+                    <label class="form-label">Tax Options (Estimate)</label>
+                     <div class="checkbox-group">
+                        <label class="custom-checkbox">
+                            <input type="checkbox" name="apply_iva_estimate" value="1" checked> <!-- Checked by default -->
+                            <span class="checkmark"></span>
+                            Apply VAT (21%)
+                        </label>
+                    </div>
+                </div>
 
-                <button type="submit" class="btn btn-primary btn-block">Generate Invoice</button>
+
+                <button type="submit" class="btn btn-primary btn-block" id="generate-button">Generate Invoice</button>
             </form>
         </div>
     </div>
 
     <div class="bento-item" style="grid-column: span 4;">
         <div class="card-header">
-            <h2 class="card-title">Quick Info</h2>
+            <h2 class="card-title">Recent Documents</h2>
         </div>
         <div class="card-body">
-            <div id="client-details" class="details-panel">
-                <h3>Client Details</h3>
-                <div id="client-details-content"></div>
-            </div>
-            <div id="service-details" class="details-panel">
-                <h3>Service Details</h3>
-                <div id="service-details-content"></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="bento-item" style="grid-column: span 12;">
-        <div class="card-header">
-            <h2 class="card-title">Recent Invoices</h2>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table sortable-table" id="invoices-table">
-                    <thead>
-                        <tr>
-                            <th class="sortable" data-sort="invoice">Invoice # <i class="fas fa-sort"></i></th>
-                            <th class="sortable" data-sort="date">Date <i class="fas fa-sort"></i></th>
-                            <th class="mobile-hide sortable" data-sort="client">Client <i class="fas fa-sort"></i></th>
-                            <th class="mobile-hide sortable" data-sort="service">Service <i class="fas fa-sort"></i></th>
-                            <th class="sortable" data-sort="amount">Amount <i class="fas fa-sort"></i></th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for invoice in recent_invoices %}
-                        <tr>
-                            <td data-value="{{ invoice[1] }}">{{ invoice[1] }}</td>
-                            <td data-value="{{ invoice[2] }}" data-date="{{ invoice[2].split('/')[2] + invoice[2].split('/')[1] + invoice[2].split('/')[0] }}">{{ invoice[2] }}</td>
-                            <td class="mobile-hide" data-value="{{ invoice[3] }}">{{ invoice[3] }}</td>
-                            <td class="mobile-hide" data-value="{{ invoice[4] }}">{{ invoice[4] }}</td>
-                            <td data-value="{{ invoice[6] }}">
-                                {{ invoice[10] }}{{ "%.2f"|format(invoice[6]) }}
-                                {% if invoice[7] %}<small>+VAT</small>{% endif %}
-                                {% if invoice[8] %}<small>-IRPF</small>{% endif %}
-                            </td>
-                            <td>
-                                <div class="table-actions">
-                                    <a href="/view_invoice/{{ invoice[1] }}" class="action-btn action-btn-view">
-                                        <i class="fas fa-eye"></i> View
-                                    </a>
-                                    <a href="#" onclick="confirmDelete('{{ invoice[1] }}')" class="action-btn action-btn-delete">
-                                        <i class="fas fa-trash"></i> Delete
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+            {% if recent_invoices or recent_estimates %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Number</th>
+                                <th>Client</th>
+                                <th>Date</th>
+                                <th>Total</th>
+                                <th>Type</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for invoice in recent_invoices %}
+                            <tr>
+                                <td>{{ invoice[1] }}</td> {# invoice_number #}
+                                <td>{{ invoice[3] }}</td> {# client_name #}
+                                <td>{{ invoice[2] }}</td> {# date #}
+                                <td>{{ invoice[10] }}{{ "%.2f"|format(invoice[13]) }}</td> {# currency_symbol + total_amount #}
+                                <td><span class="badge badge-invoice">Invoice</span></td>
+                                <td>
+                                    <a href="{{ url_for('view_invoice', invoice_number=invoice[1]) }}" class="action-btn action-btn-view"><i class="fas fa-eye"></i></a>
+                                    <a href="#" onclick="confirmDelete('invoice', '{{ invoice[1] }}')" class="action-btn action-btn-delete"><i class="fas fa-trash"></i></a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% for estimate in recent_estimates %}
+                            <tr>
+                                <td>{{ estimate.estimate_number }}</td> {# estimate_number #}
+                                <td>{{ estimate.client_name }}</td> {# client_name #}
+                                <td>{{ estimate.issue_date }}</td> {# issue_date #}
+                                <td>{{ estimate.currency }}{{ "%.2f"|format(estimate.total) }}</td> {# currency + total #}
+                                <td><span class="badge badge-estimate">Estimate</span></td>
+                                <td>
+                                    <a href="{{ url_for('view_estimate', estimate_number=estimate.estimate_number) }}" class="action-btn action-btn-view"><i class="fas fa-eye"></i></a>
+                                    <a href="#" onclick="confirmDelete('estimate', '{{ estimate.estimate_number }}')" class="action-btn action-btn-delete"><i class="fas fa-trash"></i></a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p>No recent documents found.</p>
+            {% endif %}
         </div>
     </div>
 </div>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
     // Confirm delete function
-    function confirmDelete(invoiceNumber) {
-        if (confirm('Are you sure you want to delete invoice ' + invoiceNumber + '? This action cannot be undone.')) {
-            window.location.href = '/delete_invoice/' + invoiceNumber;
+    function confirmDelete(docType, docNumber) { // Added docType
+        if (confirm('Are you sure you want to delete ' + docType + ' ' + docNumber + '? This action cannot be undone.')) {
+            window.location.href = '/delete_' + docType + '/' + docNumber;
         }
     }
+
+    // Document type switcher logic
+    const invoiceFields = document.querySelectorAll('.invoice-fields');
+    const estimateFields = document.querySelectorAll('.estimate-fields');
+    const docTypeLabels = document.querySelectorAll('.doc-type-label');
+
+    document.getElementById('doc-type-invoice-label').addEventListener('click', () => {
+        invoiceFields.forEach(field => field.style.display = 'block');
+        estimateFields.forEach(field => field.style.display = 'none');
+        docTypeLabels.forEach(label => label.classList.remove('selected'));
+        document.getElementById('doc-type-invoice-label').classList.add('selected');
+        document.getElementById('doc-type-estimate-label').classList.remove('selected');
+        document.getElementById('form-title').innerText = 'Generate New Invoice';
+        document.getElementById('generate-button').innerText = 'Generate Invoice';
+    });
+
+    document.getElementById('doc-type-estimate-label').addEventListener('click', () => {
+        invoiceFields.forEach(field => field.style.display = 'none');
+        estimateFields.forEach(field => field.style.display = 'block');
+        docTypeLabels.forEach(label => label.classList.remove('selected'));
+        document.getElementById('doc-type-estimate-label').classList.add('selected');
+        document.getElementById('doc-type-invoice-label').classList.remove('selected');
+        document.getElementById('form-title').innerText = 'Generate New Estimate';
+        document.getElementById('generate-button').innerText = 'Generate Estimate';
+    });
+
+    // Initial setup
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('doc-type-invoice-label').click();
+    });
 </script>
 {% endblock %}
