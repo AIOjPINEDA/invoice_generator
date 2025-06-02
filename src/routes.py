@@ -202,7 +202,6 @@ def register_routes(app):
         utils.save_config(config)
 
         # Generate estimate number with proper date object
-        from datetime import datetime
         issue_date_obj = datetime.strptime(estimate_date_str, '%Y-%m-%d')
         estimate_number = estimate_models.generate_estimate_number(issue_date_obj)
 
