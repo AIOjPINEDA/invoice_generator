@@ -85,8 +85,8 @@ python -m unittest tests.unit.test_new_feature -v
 
 ## Test Results Summary
 
-**Total Tests: 13**
-- Unit Tests: 10 ✅
+**Total Tests: 15**
+- Unit Tests: 12 ✅
 - Integration Tests: 3 ✅
 - Functional Tests: 0 (ready for expansion)
 

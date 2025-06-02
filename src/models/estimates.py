@@ -4,7 +4,6 @@ Estimate-related database operations for the Invoice Generator application.
 import sqlite3 # Added import for sqlite3.Error
 from datetime import datetime
 from src.models.db import get_db_connection
-import json # Added for loading config
 from src.utils import calculate_financials # Import the new utility function
 
 # TODO: Make IVA rate configurable, potentially in config.json. 
@@ -41,7 +40,7 @@ def save_estimate(client_id, service_id, quantity, issue_date_str, valid_until_d
             client_currency_row = cursor.fetchone()
             if not client_currency_row:
                 raise ValueError(f"Client with ID {client_id} not found.")
-            client_currency_code, client_currency_symbol = client_currency_row
+            client_currency_code, _ = client_currency_row  # currency_symbol not used here
 
             # 2. Fetch service unit price
             cursor.execute("SELECT unit_price FROM services WHERE id = ?", (service_id,)) # Assuming 'unit_price' from schema
@@ -165,53 +164,3 @@ def delete_estimate(estimate_number): # Removed db_path
     except sqlite3.Error as e:
         print(f"Database error in delete_estimate: {e}")
         return False
-        
-# Example usage (for testing purposes, can be removed or commented out)
-if __name__ == '__main__':
-    # This assumes your DB is in ../db/invoice_generator.db relative to this file's location when run directly
-    # Adjust DB_PATH as necessary if you run this script directly
-    # DB_PATH = '../../db/invoice_generator.db' # No longer needed here due to changes
-
-    # Initialize DB (ensure tables exist, especially if schema changed)
-    # from src.models import init_db # This would require models.py to be importable
-    # temp_conn = get_db_connection() # Call without db_path
-    # if temp_conn:
-    #     # init_db(temp_conn) # You might need to call init_db from models.py if schema changed
-    #     temp_conn.close()
-
-    # Test generate_estimate_number
-    # print("Generated estimate number:", generate_estimate_number(datetime.now()))
-
-    # Test save_estimate
-    # try:
-    #     # Ensure client_id=1 and service_id=1 exist in your DB, or change them
-    #     # Ensure date formats are correct
-    #     new_estimate_num = save_estimate( # Call without db_path
-    #         client_id=1, 
-    #         service_id=1, 
-    #         quantity=2, 
-    #         issue_date_str='2024-07-28', 
-    #         valid_until_date_str='2024-08-28',
-    #         irpf_rate_decimal=0.15, # 15% IRPF
-    #         notes='Test estimate notes.',
-    #         terms='Test estimate terms.'
-    #     )
-    #     print(f"Saved new estimate: {new_estimate_num}")
-
-    #     # Test get_estimate_by_number
-    #     if new_estimate_num:
-    #         print("\\nFetching estimate by number:", get_estimate_by_number(new_estimate_num)) # Call without db_path
-    # except Exception as e:
-    #     print(f"Error during testing: {e}")
-
-
-    # Test get_recent_estimates
-    # print("\\nRecent estimates:", get_recent_estimates(limit=3)) # Call without db_path
-
-    # Test delete_estimate (use an existing estimate number for testing)
-    # test_delete_num = "YYYY-MM-PXXX" # Replace with an actual estimate number from your DB
-    # if test_delete_num != "YYYY-MM-PXXX":
-    #     print(f"\\nDeleting estimate {test_delete_num}: {delete_estimate(test_delete_num)}") # Call without db_path
-    # else:
-    #     print("\\nSkipping delete_estimate test as test_delete_num was not set.")
-    pass # Add pass to avoid syntax error if all test code is commented out

@@ -58,7 +58,6 @@ db/invoices_personal.db
 # Data files
 data/*.xlsx
 data/*.csv
-data/raw_expenses/
 
 # Temporary files
 *.tmp

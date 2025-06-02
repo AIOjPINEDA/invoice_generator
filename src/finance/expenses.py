@@ -186,7 +186,4 @@ def get_financial_summary(year):
             'profit': (total_incomes + total_invoices) - total_expenses
         }
 
-def import_bbva_statement(file_path, default_expense_category=None, default_income_source=None):
-    """Import expenses and incomes from BBVA bank statement"""
-    from src.finance.bbva_import import import_bbva_statement as bbva_import
-    return bbva_import(file_path, default_expense_category, default_income_source)
+
