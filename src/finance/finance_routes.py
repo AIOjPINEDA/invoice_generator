@@ -1,10 +1,10 @@
 """
 Route definitions for the expenses and income tracking module.
 """
-from flask import render_template, request, jsonify, redirect, flash, url_for
+import os
+from flask import render_template, request, redirect, flash
 from datetime import datetime
 from src.finance import expenses
-from src import utils
 
 def register_expense_routes(app):
     """Register all expense and income routes"""
@@ -190,7 +190,6 @@ def register_expense_routes(app):
                 )
 
                 # Remove temporary file
-                import os
                 os.remove(temp_path)
 
                 if result['success']:

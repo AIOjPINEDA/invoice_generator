@@ -81,32 +81,6 @@ def get_incomes(limit=None):
             ''')
         return cursor.fetchall()
 
-def get_expenses_by_period(start_date, end_date):
-    """Get expenses for a specific period"""
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute('''
-        SELECT e.*, c.name as category_name
-        FROM expenses e
-        LEFT JOIN expense_categories c ON e.category_id = c.id
-        WHERE e.date BETWEEN ? AND ?
-        ORDER BY e.date DESC
-        ''', (start_date, end_date))
-        return cursor.fetchall()
-
-def get_incomes_by_period(start_date, end_date):
-    """Get incomes for a specific period"""
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute('''
-        SELECT i.*, s.name as source_name
-        FROM incomes i
-        LEFT JOIN income_sources s ON i.source_id = s.id
-        WHERE i.date BETWEEN ? AND ?
-        ORDER BY i.date DESC
-        ''', (start_date, end_date))
-        return cursor.fetchall()
-
 def get_expenses_by_category(year=None):
     """Get expenses grouped by category"""
     with get_db_connection() as conn:

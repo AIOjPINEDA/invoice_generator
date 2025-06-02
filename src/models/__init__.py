@@ -4,7 +4,7 @@ This module exports all database functions for easy access.
 """
 
 # Import database initialization
-from src.models.db import init_db, get_db_connection
+from src.models.db import init_db
 
 # Import client functions
 from src.models.clients import (
@@ -46,7 +46,6 @@ from src.models.stats import (
 # Export all functions
 __all__ = [
     'init_db',
-    'get_db_connection',
     'get_clients',
     'get_client',
     'add_client',
