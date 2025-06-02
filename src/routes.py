@@ -7,6 +7,11 @@ from src import models
 from src import utils
 from src.finance import finance_routes
 from src.models import estimates as estimate_models # Added import for estimates
+from src.utils import (
+    validate_form_fields, validate_and_convert_quantity,
+    validate_and_convert_irpf_rate, handle_validation_error,
+    format_date_for_display
+)
 
 def register_routes(app):
     """Register all application routes"""
@@ -85,18 +90,27 @@ def register_routes(app):
     @app.route('/generate_invoice', methods=['POST'])
     def generate_invoice():
         """Generate invoice based on form data"""
+        # Validate required fields
+        required_fields = ['client_id', 'service_id', 'quantity']
+        missing_fields = validate_form_fields(required_fields, request.form)
+        if missing_fields:
+            return handle_validation_error('Missing required fields')
+
+        # Validate and convert quantity
+        success, quantity, error_msg = validate_and_convert_quantity(request.form.get('quantity', 1))
+        if not success:
+            return handle_validation_error(error_msg)
+
+        # Get form data
         client_id = request.form.get('client_id')
         service_id = request.form.get('service_id')
-        quantity = request.form.get('quantity', 1)
         apply_iva = request.form.get('apply_iva') == '1'  # Checkbox for IVA
         apply_irpf = request.form.get('apply_irpf') == '1'  # Checkbox for IRPF
 
-        # Get invoice date from form or use today's date
+        # Handle invoice date
         invoice_date = request.form.get('invoice_date')
         if invoice_date:
-            # Convert from YYYY-MM-DD to DD/MM/YYYY
-            date_obj = datetime.strptime(invoice_date, '%Y-%m-%d')
-            formatted_date = date_obj.strftime('%d/%m/%Y')
+            formatted_date = format_date_for_display(invoice_date)
         else:
             formatted_date = datetime.now().strftime('%d/%m/%Y')
 
@@ -158,33 +172,29 @@ def register_routes(app):
     @app.route('/generate_estimate', methods=['POST'])
     def generate_estimate():
         """Generate estimate based on form data"""
+        # Validate required fields
+        required_fields = ['client_id', 'service_id', 'quantity', 'issue_date']
+        missing_fields = validate_form_fields(required_fields, request.form)
+        if missing_fields:
+            return handle_validation_error('Missing required fields for estimate generation.')
+
+        # Validate and convert quantity
+        success, quantity, error_msg = validate_and_convert_quantity(request.form.get('quantity', 1))
+        if not success:
+            return handle_validation_error(error_msg)
+
+        # Validate and convert IRPF rate
+        success, irpf_rate, error_msg = validate_and_convert_irpf_rate(request.form.get('irpf_rate'))
+        if not success:
+            return handle_validation_error(error_msg)
+
+        # Get form data
         client_id = request.form.get('client_id')
         service_id = request.form.get('service_id')
-        quantity = request.form.get('quantity', 1)
-        
         estimate_date_str = request.form.get('issue_date')
         valid_until_date_str = request.form.get('valid_until_date')
-        
-        # IRPF rate is expected as a string like "0.07", convert to float
-        irpf_rate_str = request.form.get('irpf_rate')
-        try:
-            irpf_rate = float(irpf_rate_str) if irpf_rate_str else 0.0
-        except ValueError:
-            flash('Invalid IRPF rate format.', 'error')
-            return redirect(request.referrer or '/')
-
         notes = request.form.get('notes', '')
         terms = request.form.get('terms', '')
-
-        if not client_id or not service_id or not quantity or not estimate_date_str:
-            flash('Missing required fields for estimate generation.', 'error')
-            return redirect(request.referrer or '/')
-
-        try:
-            quantity = int(quantity)
-        except ValueError:
-            flash('Invalid quantity.', 'error')
-            return redirect(request.referrer or '/')
 
         client = models.get_client(int(client_id))
         service = models.get_service(int(service_id))

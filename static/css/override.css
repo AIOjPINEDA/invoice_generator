@@ -3,14 +3,20 @@
  * This file contains styles that override the default styles
  */
 
+/* Primary color overrides */
+:root {
+  --primary-override: #5a7d9a;
+  --primary-hover-override: #4a6d8a;
+}
+
 /* Override button colors */
 .btn-primary,
 .action-btn-view,
 a.btn-primary,
 button[type="submit"],
 .selection-button.selected {
-  background-color: #5a7d9a !important;
-  border-color: #5a7d9a !important;
+  background-color: var(--primary-override) !important;
+  border-color: var(--primary-override) !important;
   color: white !important;
 }
 
@@ -18,13 +24,8 @@ button[type="submit"],
 .action-btn-view:hover,
 a.btn-primary:hover,
 button[type="submit"]:hover {
-  background-color: #4a6d8a !important;
-  border-color: #4a6d8a !important;
-}
-
-/* Override action buttons */
-.action-btn-view {
-  background-color: #5a7d9a !important;
+  background-color: var(--primary-hover-override) !important;
+  border-color: var(--primary-hover-override) !important;
 }
 
 .action-btn-delete {
@@ -33,13 +34,13 @@ button[type="submit"]:hover {
 
 /* Override checkboxes */
 .custom-checkbox input:checked ~ .checkmark {
-  background-color: #5a7d9a !important;
-  border-color: #5a7d9a !important;
+  background-color: var(--primary-override) !important;
+  border-color: var(--primary-override) !important;
 }
 
 /* Override focus effects */
 .form-control:focus {
-  border-color: #5a7d9a !important;
+  border-color: var(--primary-override) !important;
   box-shadow: 0 0 0 0.2rem rgba(90, 125, 154, 0.25) !important;
 }
 

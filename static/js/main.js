@@ -226,66 +226,55 @@ function selectService(buttonElement, serviceId) {
 }
 
 /**
- * Fetch client details
+ * Generic function to fetch and display details
  */
-function fetchClientDetails(clientId) {
-  if (!clientId) {
-    const detailsDiv = document.getElementById('client-details');
-    if (detailsDiv) { // Check if element exists
-        detailsDiv.style.display = 'none';
-    }
+function fetchAndDisplayDetails(type, id) {
+  const detailsDiv = document.getElementById(`${type}-details`);
+  const contentDiv = document.getElementById(`${type}-details-content`);
+
+  if (!id || !detailsDiv || !contentDiv) {
+    if (detailsDiv) detailsDiv.style.display = 'none';
     return;
   }
 
-  fetch(`/get_client/${clientId}`)
+  fetch(`/get_${type}/${id}`)
     .then(response => response.json())
     .then(data => {
-      const detailsDiv = document.getElementById('client-details');
-      const contentDiv = document.getElementById('client-details-content');
+      let content = '';
 
-      // Update content
-      contentDiv.innerHTML = `
-        <p><strong>Name:</strong> ${data.name}</p>
-        <p><strong>Tax ID:</strong> ${data.tax_id}</p>
-        <p><strong>Address:</strong> ${data.address}</p>
-        <p><strong>Country:</strong> ${data.country}</p>
-        <p><strong>Currency:</strong> ${data.currency_symbol}</p>
-      `;
+      if (type === 'client') {
+        content = `
+          <p><strong>Name:</strong> ${data.name}</p>
+          <p><strong>Tax ID:</strong> ${data.tax_id}</p>
+          <p><strong>Address:</strong> ${data.address}</p>
+          <p><strong>Country:</strong> ${data.country}</p>
+          <p><strong>Currency:</strong> ${data.currency_symbol}</p>
+        `;
+      } else if (type === 'service') {
+        content = `
+          <p><strong>Description:</strong> ${data.description}</p>
+          <p><strong>Unit price:</strong> ${data.unit_price} / ${data.unit_type}</p>
+        `;
+      }
 
-      // Show the details panel
+      contentDiv.innerHTML = content;
       detailsDiv.style.display = 'block';
     })
-    .catch(error => console.error('Error fetching client details:', error));
+    .catch(error => console.error(`Error fetching ${type} details:`, error));
 }
 
 /**
- * Fetch service details
+ * Fetch client details (wrapper for backward compatibility)
+ */
+function fetchClientDetails(clientId) {
+  fetchAndDisplayDetails('client', clientId);
+}
+
+/**
+ * Fetch service details (wrapper for backward compatibility)
  */
 function fetchServiceDetails(serviceId) {
-  if (!serviceId) {
-    const detailsDiv = document.getElementById('service-details');
-    if (detailsDiv) { // Check if element exists
-        detailsDiv.style.display = 'none';
-    }
-    return;
-  }
-
-  fetch(`/get_service/${serviceId}`)
-    .then(response => response.json())
-    .then(data => {
-      const detailsDiv = document.getElementById('service-details');
-      const contentDiv = document.getElementById('service-details-content');
-
-      // Update content
-      contentDiv.innerHTML = `
-        <p><strong>Description:</strong> ${data.description}</p>
-        <p><strong>Unit price:</strong> ${data.unit_price} / ${data.unit_type}</p>
-      `;
-
-      // Show the details panel
-      detailsDiv.style.display = 'block';
-    })
-    .catch(error => console.error('Error fetching service details:', error));
+  fetchAndDisplayDetails('service', serviceId);
 }
 
 /**
@@ -500,49 +489,99 @@ function initializeSortableTables() {
 }
 
 /**
- * Sort table by column
+ * Generic table filtering function
  */
-function sortTable(table, sortBy, ascending) {
-  const tbody = table.querySelector('tbody');
-  const rows = Array.from(tbody.querySelectorAll('tr'));
+function initializeTableFilters(tableId, filterConfig) {
+  const table = document.getElementById(tableId);
+  if (!table) return;
 
-  // Sort rows
-  rows.sort((a, b) => {
-    let aValue, bValue;
+  const rows = table.querySelectorAll('tbody tr');
+  const filters = {};
 
-    // Special handling for date column
-    if (sortBy === 'date') {
-      // Use data-date attribute for sorting (YYYYMMDD format)
-      aValue = a.querySelector(`td[data-value][data-date]`).getAttribute('data-date');
-      bValue = b.querySelector(`td[data-value][data-date]`).getAttribute('data-date');
-    } else {
-      // For other columns, use data-value attribute
-      aValue = a.querySelector(`td[data-value]:nth-child(${getColumnIndex(table, sortBy) + 1})`).getAttribute('data-value');
-      bValue = b.querySelector(`td[data-value]:nth-child(${getColumnIndex(table, sortBy) + 1})`).getAttribute('data-value');
-
-      // Convert to number if possible
-      if (!isNaN(aValue) && !isNaN(bValue)) {
-        aValue = parseFloat(aValue);
-        bValue = parseFloat(bValue);
-      }
+  // Initialize filters based on config
+  filterConfig.forEach(config => {
+    const filterElement = document.getElementById(config.filterId);
+    if (filterElement) {
+      filters[config.attribute] = {
+        element: filterElement,
+        type: config.type || 'select'
+      };
     }
-
-    // Compare values
-    if (aValue < bValue) return ascending ? -1 : 1;
-    if (aValue > bValue) return ascending ? 1 : -1;
-    return 0;
   });
 
-  // Reorder rows in the DOM
-  rows.forEach(row => {
-    tbody.appendChild(row);
+  // Apply filters function
+  function applyFilters() {
+    rows.forEach(row => {
+      let showRow = true;
+
+      // Check each filter
+      Object.keys(filters).forEach(attribute => {
+        const filter = filters[attribute];
+        const filterValue = filter.element.value.toLowerCase();
+
+        if (filterValue && filterValue !== 'all') {
+          if (filter.type === 'search') {
+            // Search in all cells
+            const searchMatch = Array.from(row.cells).some(cell =>
+              cell.textContent.toLowerCase().includes(filterValue)
+            );
+            if (!searchMatch) showRow = false;
+          } else {
+            // Attribute-based filtering
+            const rowValue = row.getAttribute(`data-${attribute}`);
+            if (rowValue !== filterValue) showRow = false;
+          }
+        }
+      });
+
+      row.style.display = showRow ? '' : 'none';
+    });
+
+    // Update stats if callback provided
+    if (filterConfig.updateStatsCallback) {
+      filterConfig.updateStatsCallback();
+    }
+  }
+
+  // Add event listeners to all filters
+  Object.values(filters).forEach(filter => {
+    filter.element.addEventListener('change', applyFilters);
+    filter.element.addEventListener('input', applyFilters);
   });
+
+  return { applyFilters, filters };
 }
 
 /**
- * Get column index by data-sort attribute
+ * Sort table by column
  */
-function getColumnIndex(table, sortBy) {
-  const headers = Array.from(table.querySelectorAll('th'));
-  return headers.findIndex(header => header.getAttribute('data-sort') === sortBy);
+function sortTable(table, sortBy, isAsc) {
+  const tbody = table.querySelector('tbody');
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+
+  rows.sort((a, b) => {
+    let aVal, bVal;
+
+    if (sortBy === 'date') {
+      // Handle date sorting
+      aVal = new Date(a.cells[1].textContent.split('/').reverse().join('-'));
+      bVal = new Date(b.cells[1].textContent.split('/').reverse().join('-'));
+    } else if (sortBy === 'amount') {
+      // Handle amount sorting (remove currency symbols and convert to number)
+      aVal = parseFloat(a.cells[4].textContent.replace(/[^\d.-]/g, ''));
+      bVal = parseFloat(b.cells[4].textContent.replace(/[^\d.-]/g, ''));
+    } else {
+      // Handle text sorting
+      const columnIndex = sortBy === 'invoice' ? 0 : sortBy === 'client' ? 2 : sortBy === 'service' ? 3 : 0;
+      aVal = a.cells[columnIndex].textContent.toLowerCase();
+      bVal = b.cells[columnIndex].textContent.toLowerCase();
+    }
+
+    if (aVal < bVal) return isAsc ? -1 : 1;
+    if (aVal > bVal) return isAsc ? 1 : -1;
+    return 0;
+  });
+
+  // Re-append sorted rows
+  rows.forEach(row => tbody.appendChild(row));
 }

@@ -3,6 +3,8 @@ Utility functions for the Invoice Generator application.
 """
 import os
 import json
+from datetime import datetime
+from flask import flash, redirect, request
 
 # Configuration file
 CONFIG_FILE = 'config.json'
@@ -93,4 +95,87 @@ def calculate_invoice_totals(service_price, quantity, apply_iva=True, apply_irpf
     
     return calculate_financials(subtotal, current_iva_rate, current_irpf_rate)
 
+def validate_form_fields(required_fields, form_data):
+    """
+    Validate required form fields and return missing fields.
 
+    Args:
+        required_fields (list): List of required field names
+        form_data (dict): Form data to validate
+
+    Returns:
+        list: List of missing field names
+    """
+    missing_fields = []
+    for field in required_fields:
+        if not form_data.get(field):
+            missing_fields.append(field)
+    return missing_fields
+
+def validate_and_convert_quantity(quantity_str):
+    """
+    Validate and convert quantity string to integer.
+
+    Args:
+        quantity_str (str): Quantity as string
+
+    Returns:
+        tuple: (success: bool, value: int or None, error_message: str or None)
+    """
+    try:
+        quantity = int(quantity_str)
+        if quantity <= 0:
+            return False, None, "Quantity must be greater than 0"
+        return True, quantity, None
+    except (ValueError, TypeError):
+        return False, None, "Invalid quantity format"
+
+def validate_and_convert_irpf_rate(irpf_rate_str):
+    """
+    Validate and convert IRPF rate string to float.
+
+    Args:
+        irpf_rate_str (str): IRPF rate as string
+
+    Returns:
+        tuple: (success: bool, value: float or None, error_message: str or None)
+    """
+    try:
+        irpf_rate = float(irpf_rate_str) if irpf_rate_str else 0.0
+        if irpf_rate < 0 or irpf_rate > 1:
+            return False, None, "IRPF rate must be between 0 and 1"
+        return True, irpf_rate, None
+    except (ValueError, TypeError):
+        return False, None, "Invalid IRPF rate format"
+
+def handle_validation_error(error_message, referrer_url=None):
+    """
+    Handle validation errors with consistent flash message and redirect.
+
+    Args:
+        error_message (str): Error message to display
+        referrer_url (str): URL to redirect to (defaults to request referrer or home)
+
+    Returns:
+        Flask redirect response
+    """
+    flash(error_message, 'error')
+    return redirect(referrer_url or request.referrer or '/')
+
+def format_date_for_display(date_str, input_format='%Y-%m-%d', output_format='%d/%m/%Y'):
+    """
+    Convert date string from one format to another.
+
+    Args:
+        date_str (str): Date string to convert
+        input_format (str): Input date format
+        output_format (str): Output date format
+
+    Returns:
+        str: Formatted date string or original string if conversion fails
+    """
+    try:
+        date_obj = datetime.strptime(date_str, input_format)
+        return date_obj.strftime(output_format)
+    except (ValueError, TypeError):
+        return date_str
