@@ -547,8 +547,14 @@
                                 <td>{{ invoice[10] }}{{ "%.2f"|format(invoice[13]) }}</td> {# currency_symbol + total_amount #}
                                 <td><span class="badge badge-invoice">Invoice</span></td>
                                 <td>
-                                    <a href="{{ url_for('view_invoice', invoice_number=invoice[1]) }}" class="action-btn action-btn-view"><i class="fas fa-eye"></i></a>
-                                    <a href="#" onclick="confirmDelete('invoice', '{{ invoice[1] }}')" class="action-btn action-btn-delete"><i class="fas fa-trash"></i></a>
+                                    <div class="table-actions">
+                                        <a href="{{ url_for('view_invoice', invoice_number=invoice[1]) }}" class="action-btn action-btn-view">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                        <a href="#" onclick="confirmDelete('invoice', '{{ invoice[1] }}')" class="action-btn action-btn-delete">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -560,8 +566,14 @@
                                 <td>{{ estimate.currency }}{{ "%.2f"|format(estimate.total) }}</td> {# currency + total #}
                                 <td><span class="badge badge-estimate">Estimate</span></td>
                                 <td>
-                                    <a href="{{ url_for('view_estimate', estimate_number=estimate.estimate_number) }}" class="action-btn action-btn-view"><i class="fas fa-eye"></i></a>
-                                    <a href="#" onclick="confirmDelete('estimate', '{{ estimate.estimate_number }}')" class="action-btn action-btn-delete"><i class="fas fa-trash"></i></a>
+                                    <div class="table-actions">
+                                        <a href="{{ url_for('view_estimate', estimate_number=estimate.estimate_number) }}" class="action-btn action-btn-view">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                        <a href="#" onclick="confirmDelete('estimate', '{{ estimate.estimate_number }}')" class="action-btn action-btn-delete">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -579,41 +591,15 @@
 
 {% block extra_js %}
 <script>
-    // Confirm delete function
-    function confirmDelete(docType, docNumber) { // Added docType
-        if (confirm('Are you sure you want to delete ' + docType + ' ' + docNumber + '? This action cannot be undone.')) {
-            window.location.href = '/delete_' + docType + '/' + docNumber;
+    // Page-specific initialization
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize table filters for recent documents
+        if (document.getElementById('recent-documents-table')) {
+            initializeTableFilters('recent-documents-table', [
+                { filterId: 'type-filter', attribute: 'type', type: 'select' },
+                { filterId: 'search-filter', attribute: 'search', type: 'search' }
+            ]);
         }
-    }
-
-    // Document type switcher logic
-    const invoiceFields = document.querySelectorAll('.invoice-fields');
-    const estimateFields = document.querySelectorAll('.estimate-fields');
-    const docTypeLabels = document.querySelectorAll('.doc-type-label');
-
-    document.getElementById('doc-type-invoice-label').addEventListener('click', () => {
-        invoiceFields.forEach(field => field.style.display = 'block');
-        estimateFields.forEach(field => field.style.display = 'none');
-        docTypeLabels.forEach(label => label.classList.remove('selected'));
-        document.getElementById('doc-type-invoice-label').classList.add('selected');
-        document.getElementById('doc-type-estimate-label').classList.remove('selected');
-        document.getElementById('form-title').innerText = 'Generate New Invoice';
-        document.getElementById('generate-button').innerText = 'Generate Invoice';
-    });
-
-    document.getElementById('doc-type-estimate-label').addEventListener('click', () => {
-        invoiceFields.forEach(field => field.style.display = 'none');
-        estimateFields.forEach(field => field.style.display = 'block');
-        docTypeLabels.forEach(label => label.classList.remove('selected'));
-        document.getElementById('doc-type-estimate-label').classList.add('selected');
-        document.getElementById('doc-type-invoice-label').classList.remove('selected');
-        document.getElementById('form-title').innerText = 'Generate New Estimate';
-        document.getElementById('generate-button').innerText = 'Generate Estimate';
-    });
-
-    // Initial setup
-    document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('doc-type-invoice-label').click();
     });
 </script>
 {% endblock %}

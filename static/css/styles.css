@@ -458,6 +458,63 @@ body.dark-mode .theme-toggle i {
   transform: rotate(15deg);
 }
 
+/* Page Header */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.page-title h1 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.page-title h1 i {
+  margin-right: 0.5rem;
+  color: var(--primary-color);
+}
+
+.page-subtitle {
+  margin: 0.5rem 0 0 0;
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+.page-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+/* Badges */
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: baseline;
+  border-radius: 0.25rem;
+}
+
+.badge-invoice {
+  color: white;
+  background-color: var(--primary-color);
+}
+
+.badge-estimate {
+  color: white;
+  background-color: var(--secondary-color);
+}
+
 /* Responsive Design */
 @media (max-width: 992px) {
   .bento-grid {

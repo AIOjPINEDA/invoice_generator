@@ -190,6 +190,19 @@
 {% endblock %}
 
 {% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-title">
+        <h1><i class="fas fa-file-invoice"></i> All Invoices</h1>
+        <p class="page-subtitle">Manage and view all your invoices for {{ selected_year }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="{{ url_for('index') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> New Invoice
+        </a>
+    </div>
+</div>
+
 <!-- Year selector -->
 <div class="year-selector">
     <label for="year-select">Select Year:</label>
@@ -298,7 +311,7 @@
                                 <a href="/view_invoice/{{ invoice[1] }}" class="action-btn action-btn-view">
                                     <i class="fas fa-eye"></i> View
                                 </a>
-                                <a href="#" onclick="confirmDelete('{{ invoice[1] }}')" class="action-btn action-btn-delete">
+                                <a href="#" onclick="confirmDeleteInvoice('{{ invoice[1] }}')" class="action-btn action-btn-delete">
                                     <i class="fas fa-trash"></i> Delete
                                 </a>
                             </div>
@@ -314,80 +327,54 @@
 
 {% block extra_js %}
 <script>
-    // Initialize filters
+    // Initialize page-specific functionality
     document.addEventListener('DOMContentLoaded', function() {
-        const clientFilter = document.getElementById('client-filter');
-        const monthFilter = document.getElementById('month-filter');
-        const searchFilter = document.getElementById('search-filter');
-        const table = document.getElementById('invoices-table');
-        const rows = table.querySelectorAll('tbody tr');
-        
-        // Apply filters when changed
-        clientFilter.addEventListener('change', applyFilters);
-        monthFilter.addEventListener('change', applyFilters);
-        searchFilter.addEventListener('input', applyFilters);
-        
-        function applyFilters() {
-            const clientValue = clientFilter.value;
-            const monthValue = monthFilter.value;
-            const searchValue = searchFilter.value.toLowerCase();
-            
-            rows.forEach(row => {
-                const clientMatch = clientValue === 'all' || row.getAttribute('data-client') === clientValue;
-                const monthMatch = monthValue === 'all' || row.getAttribute('data-month') === monthValue;
-                
-                // Search in all cells
-                let searchMatch = true;
-                if (searchValue) {
-                    searchMatch = Array.from(row.cells).some(cell => 
-                        cell.textContent.toLowerCase().includes(searchValue)
-                    );
-                }
-                
-                // Show/hide row based on filters
-                if (clientMatch && monthMatch && searchMatch) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-            
-            // Update stats based on visible rows
-            updateFilteredStats();
-        }
-        
-        function updateFilteredStats() {
-            // Count visible rows
+        // Initialize table filters using the generic function
+        const filterConfig = [
+            { filterId: 'client-filter', attribute: 'client', type: 'select' },
+            { filterId: 'month-filter', attribute: 'month', type: 'select' },
+            { filterId: 'search-filter', attribute: 'search', type: 'search' }
+        ];
+
+        // Add custom stats update callback
+        filterConfig.updateStatsCallback = function() {
+            const table = document.getElementById('invoices-table');
+            const rows = table.querySelectorAll('tbody tr');
             const visibleRows = Array.from(rows).filter(row => row.style.display !== 'none');
-            
+
             // Update total invoices stat
             document.querySelector('.stat-card:nth-child(1) h3').textContent = visibleRows.length;
-            
+
             // Calculate total amount from visible rows
             let totalAmount = 0;
             visibleRows.forEach(row => {
                 const amountCell = row.querySelector('td[data-value]:nth-child(5)');
-                totalAmount += parseFloat(amountCell.getAttribute('data-value'));
+                if (amountCell) {
+                    totalAmount += parseFloat(amountCell.getAttribute('data-value') || 0);
+                }
             });
-            
+
             // Update total amount stat
             const currencySymbol = '{{ currency_symbol }}';
-            document.querySelector('.stat-card:nth-child(2) h3').textContent = 
+            document.querySelector('.stat-card:nth-child(2) h3').textContent =
                 currencySymbol + totalAmount.toFixed(2);
-            
+
             // Count unique clients
             const uniqueClients = new Set();
             visibleRows.forEach(row => {
                 uniqueClients.add(row.getAttribute('data-client'));
             });
-            
+
             // Update unique clients stat
             document.querySelector('.stat-card:nth-child(3) h3').textContent = uniqueClients.size;
-        }
+        };
+
+        // Initialize filters
+        initializeTableFilters('invoices-table', filterConfig);
     });
-    
-    // Confirm delete function
-    function confirmDelete(invoiceNumber) {
+
+    // Confirm delete function for invoices
+    function confirmDeleteInvoice(invoiceNumber) {
         if (confirm('Are you sure you want to delete invoice ' + invoiceNumber + '? This action cannot be undone.')) {
             window.location.href = '/delete_invoice/' + invoiceNumber;
         }

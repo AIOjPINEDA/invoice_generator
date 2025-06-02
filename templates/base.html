@@ -154,25 +154,28 @@
         </a>
         <div class="navbar-nav">
             <div class="nav-item">
-                <a class="nav-link {% if request.endpoint == 'index' and request.args.get('doc_type') != 'estimate' and request.args.get('doc_type') != 'invoice' %}active{% endif %}" href="{{ url_for('index') }}">
+                <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">
                     <i class="fas fa-home"></i> Home
                 </a>
             </div>
+            <div class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">
+                    <i class="fas fa-chart-pie"></i> Dashboard
+                </a>
+            </div>
             <div class="nav-item dropdown">
-                <button class="dropdown-btn {% if request.endpoint == 'index' and request.args.get('doc_type') == 'invoice' or request.endpoint == 'all_invoices' %}active{% endif %}">
+                <button class="dropdown-btn {% if request.endpoint in ['all_invoices', 'view_invoice'] %}active{% endif %}">
                     <i class="fas fa-file-invoice"></i> Invoices <i class="fas fa-caret-down"></i>
                 </button>
                 <div class="dropdown-content">
-                    <a href="{{ url_for('index') }}?doc_type=invoice">New Invoice</a>
                     <a href="{{ url_for('all_invoices') }}">View All Invoices</a>
                 </div>
             </div>
             <div class="nav-item dropdown">
-                <button class="dropdown-btn {% if request.endpoint == 'index' and request.args.get('doc_type') == 'estimate' or request.endpoint == 'list_estimates' %}active{% endif %}">
+                <button class="dropdown-btn {% if request.endpoint in ['list_estimates', 'view_estimate'] %}active{% endif %}">
                     <i class="fas fa-file-alt"></i> Estimates <i class="fas fa-caret-down"></i>
                 </button>
                 <div class="dropdown-content">
-                    <a href="{{ url_for('index') }}?doc_type=estimate">New Estimate</a>
                     <a href="{{ url_for('list_estimates') }}">View All Estimates</a>
                 </div>
             </div>
