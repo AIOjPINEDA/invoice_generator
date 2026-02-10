@@ -193,7 +193,7 @@
 <!-- Year selector -->
 <div class="year-selector mb-3">
     <label for="year-select">Select Year:</label>
-    <select id="year-select" class="form-select d-inline-block w-auto" onchange="window.location.href='{{ url_for("estimates") }}?year=' + this.value">
+    <select id="year-select" class="form-select d-inline-block w-auto" onchange="window.location.href='{{ url_for("list_estimates") }}?year=' + this.value">
         {% for year in available_years %}
         <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
         {% endfor %}
